@@ -1,0 +1,44 @@
+{
+    "nodes": [
+        {
+            "id": "node_1",
+            "location": [
+                5,
+                2,
+                5
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            },
+            "request": {},
+            "current_mode": "idle",
+            "fc": -1,
+            "sample_rate": -1,
+            "next_update": -1,
+            "req_time": 0,
+            "current_counter": -1,
+            "data": []
+        },
+        {
+            "id": "node_2",
+            "location": [
+                15,
+                8,
+                5
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            },
+            "request": {},
+            "current_mode": "idle",
+            "fc": -1,
+            "sample_rate": -1,
+            "next_update": -1,
+            "req_time": 0,
+            "current_counter": -1,
+            "data": []
+        }
+    ]
+}
