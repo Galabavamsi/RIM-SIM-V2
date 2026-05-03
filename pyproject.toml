@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ris-sim"
+version = "2.0.0"
+description = "Open Emulator for Smart Radio Environments with Reconfigurable Intelligent Surfaces"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "RIS-SIM contributors"}]
+keywords = ["ris", "sdr", "wireless", "emulator", "channel-modeling", "reconfigurable-intelligent-surface"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+    "pyzmq>=25",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+    "ruff>=0.3",
+    "mypy>=1.8",
+]
+all = ["ris-sim[dev]"]
+
+[project.scripts]
+ris-sim = "ris_sim.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["ris_sim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["ris_sim/tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+# Allow sys.path.insert before imports in test files
+[tool.ruff.lint.per-file-ignores]
+"ris_sim/tests/**/*.py" = ["E402"]
+
+[tool.mypy]
+ignore_missing_imports = true
+[[tool.mypy.overrides]]
+module = [
+    "ris_sim.modules.*",
+    "ris_sim.external_traffic.*",
+]
+ignore_errors = true

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIS-SIM Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.tab-bar{display:flex;background:#161b22;border-bottom:1px solid #30363d;padding:0 12px;flex-shrink:0}
+.tab-bar button{padding:10px 20px;background:none;border:none;color:#8b949e;cursor:pointer;font:13px 'Segoe UI',system-ui,sans-serif;border-bottom:2px solid transparent;transition:all .15s}
+.tab-bar button:hover{color:#c9d1d9;background:#21262d}
+.tab-bar button.active{color:#58a6ff;border-bottom-color:#58a6ff}
+.tab-content{flex:1;overflow:auto;display:none;padding:12px}
+.tab-content.active{display:flex;flex-direction:column}
+#tab-config.active{display:flex;gap:12px}
+#tab-config.active .left{width:380px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex-shrink:0}
+#tab-config.active .right{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+#tab-topology.active{position:relative}
+#tab-topology canvas{width:100%;height:100%}
+#tab-live.active .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;flex:1}
+#tab-results.active .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px;flex:1}
+.chart-box{background:#161b22;border:1px solid #30363d;border-radius:6px;position:relative;min-height:200px}
+.chart-box .title{position:absolute;top:4px;left:8px;font-size:11px;color:#8b949e;z-index:1}
+.chart-box canvas{width:100%!important;height:100%!important}
+.panel{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:8px}
+.panel h3{font-size:12px;color:#58a6ff;margin-bottom:6px;cursor:pointer;user-select:none}
+.panel textarea{width:100%;height:100px;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;font:12px 'Cascadia Code',Consolas,monospace;resize:vertical;padding:6px}
+.panel textarea.invalid{border-color:#f85149}
+.panel select,.panel button{width:100%;margin:3px 0;padding:6px 10px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;cursor:pointer;font:13px 'Segoe UI',system-ui,sans-serif}
+.panel button:hover{background:#30363d}
+.panel .row{display:flex;gap:6px}
+.panel .row button{flex:1}
+.btn-start{background:#238636!important;color:#fff!important;font-weight:600}
+.btn-stop{background:#da3633!important;color:#fff!important}
+.btn-pause{background:#d29922!important;color:#000!important}
+.status-bar{height:30px;background:#161b22;border-top:1px solid #30363d;display:flex;align-items:center;padding:0 12px;font-size:12px;color:#8b949e;gap:20px;flex-shrink:0}
+.status-bar .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.dot.idle{background:#8b949e}.dot.running{background:#3fb950;animation:pulse 1s infinite}.dot.done{background:#58a6ff}.dot.error{background:#f85149}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.err{color:#f85149;font-size:11px}
+.metrics-table{width:100%;border-collapse:collapse;font-size:12px}
+.metrics-table td{padding:4px 8px;border-bottom:1px solid #30363d}
+.metrics-table td:first-child{color:#8b949e}
+.metrics-table td:last-child{text-align:right;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="config">Configuration</button>
+  <button class="tab" data-tab="topology">Room Topology</button>
+  <button class="tab" data-tab="live">Live View</button>
+  <button class="tab" data-tab="results">Results</button>
+</div>
+
+<!-- CONFIG TAB -->
+<div class="tab-content active" id="tab-config">
+  <div class="left">
+    <div class="panel">
+      <div class="row">
+        <select id="topo-select" onchange="applyTopology()"><option value="">-- Topology --</option></select>
+        <select id="sig-select" onchange="applySignal()"><option value="">-- Signal --</option></select>
+      </div>
+      <div class="row"><button class="btn-start" onclick="startSimulation()">Start Simulation</button></div>
+      <div class="row">
+        <button onclick="saveConfig()">Download JSON</button>
+        <button onclick="document.getElementById('load-input').click()">Upload JSON</button>
+        <input type="file" id="load-input" style="display:none" accept=".json" onchange="loadConfig(event)">
+      </div>
+      <div id="config-errors" class="err"></div>
+    </div>
+    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Room</h3>
+      <textarea id="cfg-room" oninput="onCfgChange()">{ "length": 10, "width": 10, "height": 10 }</textarea></div>
+    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Channel</h3>
+      <textarea id="cfg-channel" oninput="onCfgChange()">{ "enable_noise": true, "noise_figure_db": 5 }</textarea></div>
+  </div>
+  <div class="right">
+    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Nodes</h3>
+      <textarea id="cfg-nodes" oninput="onCfgChange()">[
+  { "id": "node_1", "location": [2, 4, 5], "mobility": { "type": "static" } },
+  { "id": "node_2", "location": [2, 6, 5], "mobility": { "type": "static" } }
+]</textarea></div>
+    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">RIS Panels</h3>
+      <textarea id="cfg-ris" oninput="onCfgChange()">[
+  { "id": "ris_1", "fc": 2.4e9, "type": "static", "plane": 5, "location": [0, 5, 5],
+    "unit_cell_m_length": 0.05, "unit_cell_n_length": 0.05, "unit_cell_gap": 0.01,
+    "array_size": [8, 8], "phase_response": { "1": [0.707, 0.707] },
+    "configuration_matrix": [
+      [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]
+    ] }
+]</textarea></div>
+    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Traffic (TX / RX Requests)</h3>
+      <textarea id="cfg-traffic" oninput="onCfgChange()">[
+  { "mode": "transmit", "node_id": "node_1", "fc": 2.4e9, "sample_rate": 5880,
+    "waveform": { "kind": "bpsk_bits", "bits": [0,0,1,1,0,1,1,0,1,0,0,1], "amplitude": 0.1, "samples_per_symbol": 10 } },
+  { "mode": "receive", "node_id": "node_2", "fc": 2.4e9, "sample_rate": 5880, "num_samps": 120 }
+]</textarea></div>
+  </div>
+</div>
+
+<!-- TOPOLOGY TAB -->
+<div class="tab-content" id="tab-topology"><canvas id="topo-canvas"></canvas></div>
+
+<!-- LIVE TAB -->
+<div class="tab-content" id="tab-live">
+  <div class="grid">
+    <div class="chart-box"><div class="title">Constellation (I/Q)</div><canvas id="live-const"></canvas></div>
+    <div class="chart-box"><div class="title">IQ Time Series</div><canvas id="live-iqtime"></canvas></div>
+    <div class="chart-box"><div class="title">Received Power</div><canvas id="live-power"></canvas></div>
+    <div class="chart-box"><div class="title">RIS Configuration Heatmap</div><canvas id="live-heatmap"></canvas></div>
+  </div>
+</div>
+
+<!-- RESULTS TAB -->
+<div class="tab-content" id="tab-results">
+  <div class="grid" style="grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr 200px">
+    <div class="chart-box"><div class="title">Final Constellation</div><canvas id="res-const"></canvas></div>
+    <div class="chart-box"><div class="title">Channel Analysis: LOS / RIS / Total</div><canvas id="res-channel-bar"></canvas></div>
+    <div class="chart-box"><div class="title">Power Spectrum (FFT Magnitude)</div><canvas id="res-fft"></canvas></div>
+    <div class="chart-box"><div class="title">Room Signal Heatmap (dB)</div><canvas id="res-room-heat"></canvas></div>
+    <div class="panel" style="overflow-y:auto;grid-column:1/-1">
+      <h3>Metrics</h3><div id="res-metrics"></div>
+      <span style="margin-left:16px"></span><h3 style="display:inline">Channel Info</h3><div id="res-channel" style="display:inline-block;margin-left:16px"></div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <span><span class="dot idle" id="status-dot"></span><span id="status-text">Ready</span></span>
+  <span id="st-tick">Tick: --</span>
+  <span id="st-rate">--</span>
+  <span id="st-avg">Avg: --</span>
+  <span id="st-eta">ETA: --</span>
+  <span id="st-samples">Samples: --</span>
+</div>
+<script>
+// ── Tabs ──────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  var btn = document.querySelector('.tab-bar button[data-tab="' + name + '"]');
+  if (btn) btn.classList.add('active');
+  var content = document.getElementById('tab-' + name);
+  if (content) content.classList.add('active');
+  if (name === 'topology') drawTopology();
+}
+
+var tabBtns = document.querySelectorAll('.tab-bar button');
+tabBtns.forEach(function(btn) {
+  btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
+});
+
+// ── WebSocket ─────────────────────────────────────────────
+var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+var wsUrl = proto + '//' + location.host + '/ws/live';
+var ws = new WebSocket(wsUrl);
+var simState = {nodes:[],ris:[],latest_iq:{}};
+var allSamples = {};
+var liveCharts = {}, resultsCharts = {};
+
+ws.onopen = function() { setStatus('idle','Connected'); loadTemplates(); };
+ws.onclose = function() { setStatus('error','Disconnected'); };
+ws.onerror = function(e) { };
+ws.onmessage = function(evt) {
+  var msg = JSON.parse(evt.data);
+  if (msg.type === 'state') {
+    simState = msg;
+    for (var nid in msg.latest_iq || {}) {
+      if (!allSamples[nid]) allSamples[nid] = [];
+      (msg.latest_iq[nid] || []).forEach(function(p) { allSamples[nid].push(p); });
+    }
+    setStatus('running', 'Tick ' + msg.tick + '/' + (msg.estimated_total||'?'));
+    updateStatusBar(msg);
+    drawTopology();
+    drawLiveCharts(msg);
+  } else if (msg.type === 'simulation_complete') {setStatus('done', 'Done: ' + msg.tick + ' ticks in ' + msg.elapsed_s + 's');
+    simState._channel = msg.channel || {};
+    switchTab('results');
+    // Small delay to let browser reflow before drawing charts
+    setTimeout(function() { drawResults(); }, 100);
+  } else if (msg.type === 'config_valid') {
+    allSamples = {}; destroyAllCharts(); liveCharts = {}; resultsCharts = {};
+    setStatus('running','Simulation started');
+    switchTab('live');
+  } else if (msg.type === 'config_invalid') {
+    setStatus('error', (msg.errors||[]).join('; '));
+  } else if (msg.type === 'stopped') {
+    setStatus('idle','Stopped');
+  } else if (msg.type === 'error') {
+    setStatus('error', msg.message);
+  } else if (msg.type === 'pong') {
+    // ignore
+  }
+};
+
+function sendCmd(cmd, extra) {
+  extra = extra || {};
+  var payload = {type:cmd};
+  for (var k in extra) payload[k] = extra[k];
+  if (cmd === 'start') {
+    try {
+      payload.scenario = buildScenario();
+      // Validate traffic node_ids exist in nodes
+      var nodeIds = (payload.scenario.nodes||[]).map(function(n){return n.id;});
+      var traffic = payload.scenario.traffic||[];
+      for (var i=0;i<traffic.length;i++) {
+        var nid = traffic[i].node_id;
+        if (nodeIds.indexOf(nid) === -1) {
+          setStatus('error', 'Traffic references node "'+nid+'" which is not in topology. Available: '+nodeIds.join(', '));
+          return;
+        }
+      }
+    } catch(e) {
+      setStatus('error', 'Invalid config: ' + e.message);
+      return;
+    }
+  }
+  if (ws.readyState !== WebSocket.OPEN) {
+    setStatus('error', 'WebSocket not connected. Refresh the page.');
+    return;
+  }
+  ws.send(JSON.stringify(payload));
+}
+function startSimulation() { sendCmd('start'); }
+
+// ── Status ────────────────────────────────────────────────
+function setStatus(state, text) {
+  document.getElementById('status-text').textContent = text;
+  document.getElementById('status-dot').className = 'dot ' + state;
+}
+function updateStatusBar(msg) {
+  document.getElementById('st-tick').textContent = 'Tick: ' + msg.tick + '/' + (msg.estimated_total||'?');
+  if (msg.metrics) {
+    document.getElementById('st-rate').textContent = (msg.metrics.tick_rate||0) + ' t/s';
+    document.getElementById('st-avg').textContent = 'Avg: ' + (msg.metrics.avg_tick_us||0) + ' us';
+    document.getElementById('st-eta').textContent = 'ETA: ' + (msg.metrics.eta_s||'--') + 's';
+    document.getElementById('st-samples').textContent = 'Samples: ' + (msg.metrics.samples_processed||0);
+  }
+}
+
+// ── Config ────────────────────────────────────────────────
+function getCfg(id) { return document.getElementById('cfg-'+id).value; }
+function setCfg(id, v) { document.getElementById('cfg-'+id).value = v; onCfgChange(); }
+function buildScenario() {
+  return {
+    room: JSON.parse(getCfg('room')),
+    ris: JSON.parse(getCfg('ris')),
+    nodes: JSON.parse(getCfg('nodes')),
+    traffic: JSON.parse(getCfg('traffic')),
+    channel: JSON.parse(getCfg('channel'))
+  };
+}
+function onCfgChange() {
+  try { buildScenario(); document.getElementById('config-errors').textContent = '';
+    ['room','nodes','ris','traffic','channel'].forEach(function(id) { document.getElementById('cfg-'+id).classList.remove('invalid'); }); }
+  catch(e) {}
+}
+
+async function loadTemplates() {
+  var topoSel = document.getElementById('topo-select');
+  var sigSel = document.getElementById('sig-select');
+  try {
+    var r = await fetch('/api/templates');
+    if (!r.ok) return;
+    var d = await r.json();
+    while (topoSel.options.length > 1) topoSel.remove(1);
+    while (sigSel.options.length > 1) sigSel.remove(1);
+
+    if (!d.templates || d.templates.length === 0) return;
+
+    d.templates.forEach(function(t) {
+      var o = document.createElement('option');
+      o.value = t;
+      o.textContent = t.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      if (t.indexOf('topo_') === 0) {
+        topoSel.appendChild(o);
+      } else if (t.indexOf('sig_') === 0) {
+        sigSel.appendChild(o);
+      }
+    });} catch(e) {}
+}
+
+async function applyTopology() {
+  var n = document.getElementById('topo-select').value;
+  if (!n) return;try {
+    var r = await fetch('/api/templates/' + n);
+    var d = await r.json();
+    if (d.room) setCfg('room', JSON.stringify(d.room,null,2));
+    if (d.ris) setCfg('ris', JSON.stringify(d.ris,null,2));
+    if (d.nodes) setCfg('nodes', JSON.stringify(d.nodes,null,2));
+    if (d.channel) setCfg('channel', JSON.stringify(d.channel,null,2));
+    setStatus('idle','Topology: ' + n);
+    drawTopology();
+  } catch(e) {}
+}
+
+async function applySignal() {
+  var n = document.getElementById('sig-select').value;
+  if (!n) return;try {
+    var r = await fetch('/api/templates/' + n);
+    var d = await r.json();
+    if (d.traffic) setCfg('traffic', JSON.stringify(d.traffic,null,2));
+    setStatus('idle','Signal: ' + n);
+  } catch(e) {}
+}
+function saveConfig() {
+  var b = new Blob([JSON.stringify(buildScenario(),null,2)],{type:'application/json'});
+  var a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='scenario.json'; a.click();
+}
+function loadConfig(evt) {
+  var f = evt.target.files[0]; if (!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try { var d = JSON.parse(e.target.result);
+      if (d.room) setCfg('room',JSON.stringify(d.room,null,2));
+      if (d.ris) setCfg('ris',JSON.stringify(d.ris,null,2));
+      if (d.nodes) setCfg('nodes',JSON.stringify(d.nodes,null,2));
+      if (d.traffic) setCfg('traffic',JSON.stringify(d.traffic,null,2));
+      if (d.channel) setCfg('channel',JSON.stringify(d.channel,null,2));
+    } catch(ex) { setStatus('error','Invalid JSON'); }
+  };
+  reader.readAsText(f);
+}
+
+// ── Topology Canvas ────────────────────────────────────────
+var topoCanvas = document.getElementById('topo-canvas');
+var topoCtx = topoCanvas.getContext('2d');
+var roomW=10, roomH=10, dragNode=null, dragOx=0, dragOy=0;
+
+function resizeTopo() {
+  var box = document.getElementById('tab-topology');
+  topoCanvas.width = box.clientWidth || 800;
+  topoCanvas.height = box.clientHeight || 500;
+}
+function toScreen(x,y) {
+  var pad=40, w=topoCanvas.width-2*pad, h=topoCanvas.height-2*pad;
+  return [pad+(x/roomW)*w, topoCanvas.height-pad-(y/roomH)*h];
+}
+function fromScreen(sx,sy) {
+  var pad=40, w=topoCanvas.width-2*pad, h=topoCanvas.height-2*pad;
+  return [((sx-pad)/w)*roomW, ((topoCanvas.height-pad-sy)/h)*roomH];
+}
+function drawTopology() {
+  resizeTopo();
+  var ctx=topoCtx;
+  ctx.clearRect(0,0,topoCanvas.width,topoCanvas.height);
+  try { var r=JSON.parse(getCfg('room')); roomW=r.length||10; roomH=r.width||10; } catch(e) { roomW=10; roomH=10; }
+  var p00=toScreen(0,0), p11=toScreen(roomW,roomH);
+  ctx.fillStyle='#0d1117'; ctx.fillRect(p00[0],p11[1],p11[0]-p00[0],p00[1]-p11[1]);
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=2; ctx.strokeRect(p00[0],p11[1],p11[0]-p00[0],p00[1]-p11[1]);
+  ctx.strokeStyle='#1c2128'; ctx.lineWidth=0.5;
+  for (var i=1;i<roomW;i++) { var x=toScreen(i,0); ctx.beginPath(); ctx.moveTo(x[0],p11[1]); ctx.lineTo(x[0],p00[1]); ctx.stroke(); }
+  for (var i=1;i<roomH;i++) { var y=toScreen(0,i); ctx.beginPath(); ctx.moveTo(p00[0],y[1]); ctx.lineTo(p11[0],y[1]); ctx.stroke(); }
+
+  var nodes = (simState.nodes && simState.nodes.length) ? simState.nodes : null;
+  if (!nodes) { try { nodes=JSON.parse(getCfg('nodes')); } catch(e) {} }
+  (nodes||[]).forEach(function(n) {
+    var s=toScreen(n.location[0],n.location[1]);
+    var colors={idle:'#8b949e',transmit:'#3fb950',receive:'#58a6ff'};
+    ctx.fillStyle=colors[n.mode||'idle']||'#8b949e';
+    ctx.beginPath(); ctx.arc(s[0],s[1],8,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 11px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(n.id||'?',s[0],s[1]-14);
+    var labels={idle:'IDLE',transmit:'TX',receive:'RX'};
+    ctx.font='9px Segoe UI'; ctx.fillStyle='#8b949e';
+    ctx.fillText(labels[n.mode||'idle']||'',s[0],s[1]+18);
+  });
+
+  var risList=[];
+  try { risList=JSON.parse(getCfg('ris')); } catch(e) {}
+  risList.forEach(function(r) {
+    var s=toScreen(r.location[0],r.location[1]);
+    ctx.fillStyle='rgba(210,153,34,0.6)'; ctx.fillRect(s[0]-12,s[1]-6,24,12);
+    ctx.strokeStyle='#d29922'; ctx.lineWidth=2; ctx.strokeRect(s[0]-12,s[1]-6,24,12);
+    ctx.fillStyle='#d29922'; ctx.font='bold 10px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(r.id||'RIS',s[0],s[1]-14);
+  });
+  ctx.fillStyle='#8b949e'; ctx.font='10px Segoe UI'; ctx.textAlign='left';
+  ctx.fillText('Double-click: add node | Drag: move node',10,topoCanvas.height-8);
+}
+
+function getNodeAt(sx,sy) {
+  var nodes=[]; try { nodes=JSON.parse(getCfg('nodes')); } catch(e) {}
+  for (var i=nodes.length-1;i>=0;i--) {
+    var s=toScreen(nodes[i].location[0],nodes[i].location[1]);
+    if (Math.hypot(sx-s[0],sy-s[1])<12) return {idx:i,node:nodes[i]};
+  } return null;
+}
+topoCanvas.addEventListener('mousedown',function(e) {
+  var r=topoCanvas.getBoundingClientRect(), sx=e.clientX-r.left, sy=e.clientY-r.top;
+  var h=getNodeAt(sx,sy);
+  if (h) { dragNode=h; dragOx=sx-toScreen(h.node.location[0],h.node.location[1])[0]; dragOy=sy-toScreen(h.node.location[0],h.node.location[1])[1]; }
+});
+topoCanvas.addEventListener('mousemove',function(e) {
+  if (!dragNode) return;
+  var r=topoCanvas.getBoundingClientRect(), sx=e.clientX-r.left-dragOx, sy=e.clientY-r.top-dragOy;
+  var xy=fromScreen(sx,sy);
+  try { var n=JSON.parse(getCfg('nodes')); n[dragNode.idx].location=[Math.round(Math.max(0,Math.min(roomW,xy[0]))*10)/10,Math.round(Math.max(0,Math.min(roomH,xy[1]))*10)/10,5]; setCfg('nodes',JSON.stringify(n,null,2)); } catch(e) {} drawTopology();
+});
+topoCanvas.addEventListener('mouseup',function(){dragNode=null;});
+topoCanvas.addEventListener('dblclick',function(e) {
+  var r=topoCanvas.getBoundingClientRect(), sx=e.clientX-r.left, sy=e.clientY-r.top;
+  if (getNodeAt(sx,sy)) return;
+  var xy=fromScreen(sx,sy);
+  try { var n=JSON.parse(getCfg('nodes')); n.push({id:'node_'+(n.length+1),location:[Math.round(Math.max(0,Math.min(roomW,xy[0]))*10)/10,Math.round(Math.max(0,Math.min(roomH,xy[1]))*10)/10,5],mobility:{type:'static'}}); setCfg('nodes',JSON.stringify(n,null,2)); } catch(e) {}
+});
+
+// ── Live Charts ────────────────────────────────────────────
+function drawLiveCharts(msg) {
+  var iq = msg.latest_iq || {};
+  var nids = Object.keys(iq);
+  if (!nids.length) return;
+  var nid = nids[0];
+  var data = iq[nid] || [];
+  if (!data.length) return;
+
+  var all = (allSamples[nid] || []).slice(-200);
+  var labels = []; for (var i=0; i<all.length; i++) labels.push(i);
+  var iVals = all.map(function(p) { return p[0]; });
+  var qVals = all.map(function(p) { return p[1]; });
+  var power = all.map(function(p) { return p[0]*p[0] + p[1]*p[1]; });
+  var phase = all.map(function(p) { return Math.atan2(p[1], p[0]) * 180 / Math.PI; });
+
+  makeScatter('live-const', liveCharts, 'live-const', nid, all, 'I', 'Q');
+  makeLine('live-iqtime', liveCharts, 'live-iqtime', [
+    {label:'I', data:iVals, borderColor:'#58a6ff'},
+    {label:'Q', data:qVals, borderColor:'#f78166'}
+  ], 'Sample', 'Amplitude');
+  makeLine('live-power', liveCharts, 'live-power', [
+    {label:'|I+jQ|^2', data:power, borderColor:'#3fb950', fill:true, backgroundColor:'rgba(63,185,80,0.1)'}
+  ], 'Sample', 'Power');
+  drawHeatmap();
+}
+
+function drawHeatmap() {
+  var canvas = document.getElementById('live-heatmap');
+  if (!canvas) return;
+  var box = canvas.parentElement;
+  canvas.width = box.clientWidth;
+  canvas.height = box.clientHeight;
+  var ctx = canvas.getContext('2d');
+  var risList = simState.ris || [];
+  if (!risList.length) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+  var ris = risList[0], cfg = ris.config || [];
+  if (!cfg.length) return;
+  var rows = cfg.length, cols = cfg[0].length;
+  var cw = canvas.width / cols, ch = canvas.height / rows;
+  var minV = cfg[0][0], maxV = cfg[0][0];
+  for (var i=0;i<rows;i++) for (var j=0;j<cols;j++) { var v=cfg[i][j]; if (v<minV) minV=v; if (v>maxV) maxV=v; }
+  var range = maxV - minV || 1;
+  for (var i=0;i<rows;i++) {
+    for (var j=0;j<cols;j++) {
+      var v = (cfg[i][j] - minV) / range;
+      var r = Math.floor(v * 255), g = Math.floor((1-Math.abs(2*v-1))*200), b = Math.floor((1-v)*255);
+      ctx.fillStyle = 'rgb('+r+','+Math.max(0,g)+','+b+')';
+      ctx.fillRect(j*cw, i*ch, cw, ch);
+    }
+  }
+  ctx.fillStyle = '#fff'; ctx.font = '9px monospace';
+  ctx.fillText((ris.id||'RIS')+' ('+rows+'x'+cols+')', 4, 14);
+}
+function destroyAllCharts() {
+  for (var k in liveCharts) { try { liveCharts[k].destroy(); } catch(e) {} }
+  for (var k in resultsCharts) { try { resultsCharts[k].destroy(); } catch(e) {} }
+}
+function drawResults() {
+  var nids = Object.keys(allSamples);
+  if (!nids.length) { return; }
+  var nid = nids[0], samples = allSamples[nid]||[];
+  if (!samples.length) return;// Constellation
+  var pts = samples.slice(-500).map(function(p) { return {x:p[0],y:p[1]}; });
+  makeScatter('res-const', resultsCharts, 'res-const', nid, pts, 'I', 'Q');
+
+  // Channel Analysis bar chart (LOS / RIS / Total / Boost)
+  var ch = simState._channel || {};
+  makeBarChart('res-channel-bar', resultsCharts, 'res-channel-bar', ch);
+
+  // Room signal heatmap
+  drawRoomHeatmap();
+
+  // FFT magnitude (compute from IQ pairs properly)
+  var N = Math.min(samples.length, 512);
+  var re = new Array(N), im = new Array(N);
+  for (var i=0; i<N; i++) { re[i]=samples[i][0]; im[i]=samples[i][1]; }
+  // Simple DFT
+  var mags = [];
+  for (var k=0; k<N; k++) {
+    var sumRe=0, sumIm=0;
+    for (var n=0; n<N; n++) {
+      var angle = -2*Math.PI*k*n/N;
+      sumRe += re[n]*Math.cos(angle) - im[n]*Math.sin(angle);
+      sumIm += re[n]*Math.sin(angle) + im[n]*Math.cos(angle);
+    }
+    mags.push(20*Math.log10(Math.max(Math.sqrt(sumRe*sumRe+sumIm*sumIm), 1e-10)));
+  }
+  makeLine('res-fft', resultsCharts, 'res-fft', [
+    {label:'|FFT|', data:mags, borderColor:'#bc8cff', pointRadius:0}
+  ], 'Frequency Bin', 'dB');
+
+  // Metrics
+  var totalPower=0, peakPower=0, meanI=0, meanQ=0;
+  for (var i=0; i<samples.length; i++) {
+    var p=samples[i], pow=p[0]*p[0]+p[1]*p[1];
+    totalPower+=pow; if (pow>peakPower) peakPower=pow; meanI+=p[0]; meanQ+=p[1];
+  }
+  totalPower/=samples.length; meanI/=samples.length; meanQ/=samples.length;
+  var rms=Math.sqrt(totalPower);
+  document.getElementById('res-metrics').innerHTML = '<table class="metrics-table">'+
+    '<tr><td>Samples</td><td>'+samples.length+'</td></tr>'+
+    '<tr><td>Mean Power</td><td>'+(10*Math.log10(totalPower)).toFixed(1)+' dB</td></tr>'+
+    '<tr><td>Peak Power</td><td>'+(10*Math.log10(peakPower)).toFixed(1)+' dB</td></tr>'+
+    '<tr><td>RMS Amplitude</td><td>'+rms.toExponential(3)+'</td></tr>'+
+    '<tr><td>Mean I</td><td>'+meanI.toExponential(3)+'</td></tr>'+
+    '<tr><td>Mean Q</td><td>'+meanQ.toExponential(3)+'</td></tr>'+
+    '</table>';
+  document.getElementById('res-channel').innerHTML = '<table class="metrics-table">'+
+    '<tr><td>Receiver</td><td>'+nid+'</td></tr>'+
+    '<tr><td>Ticks</td><td>'+(simState.tick||0)+'</td></tr>'+
+    '<tr><td>RIS Panels</td><td>'+((simState.ris||[]).length)+'</td></tr>'+
+    '<tr><td>RIS Elements</td><td>'+((simState.metrics||{}).ris_evaluations||0)+'</td></tr>'+
+    '<tr><td>Avg Tick</td><td>'+((simState.metrics||{}).avg_tick_us||0)+' us</td></tr>'+
+    '</table>';
+}
+
+function drawRoomHeatmap() {
+  var canvas = document.getElementById('res-room-heat');
+  if (!canvas) return;
+  var box = canvas.parentElement;
+  canvas.width = box.clientWidth;
+  canvas.height = box.clientHeight;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Get room and node positions
+  var roomW=10, roomH=10, fc=2.4e9;
+  try { var r=JSON.parse(getCfg('room')); roomW=r.length||10; roomH=r.width||10; } catch(e) {}
+  var nodes=[], traffic=[];
+  try { nodes=JSON.parse(getCfg('nodes')); } catch(e) {}
+  try { traffic=JSON.parse(getCfg('traffic')); } catch(e) {}
+  if (traffic.length>0) fc = traffic[0].fc || 2.4e9;
+
+  // Find TX and RX
+  var txPos=null, rxPos=null;
+  for (var i=0;i<nodes.length;i++) {
+    for (var j=0;j<traffic.length;j++) {
+      if (traffic[j].node_id===nodes[i].id) {
+        if (traffic[j].mode==='transmit') txPos=nodes[i].location;
+        if (traffic[j].mode==='receive') rxPos=nodes[i].location;
+      }
+    }
+  }
+  if (!txPos && nodes[0]) txPos=nodes[0].location;
+  if (!rxPos && nodes[1]) rxPos=nodes[1].location;
+
+  // Get channel data for RIS boost
+  var ch=simState._channel||{};
+  var boostDB=ch.boost_db||0;
+
+  // Compute dB range based on room size
+  var c=3e8, lambda=c/fc;
+  var minDist=0.5, maxDist=Math.hypot(roomW,roomH);
+  // Free-space path loss: 20*log10(lambda/(4*pi*d))
+  var maxDB=20*Math.log10(lambda/(4*Math.PI*minDist));
+  var minDB=20*Math.log10(lambda/(4*Math.PI*maxDist));
+  var range=Math.max(maxDB-minDB, 10);
+
+  // Draw grid
+  var grid=50, pad=30;
+  var cw=(w-2*pad)/grid, ch_val=(h-2*pad)/grid;
+  for (var i=0;i<grid;i++) {
+    for (var j=0;j<grid;j++) {
+      var x=(i+0.5)*(roomW/grid), y=(j+0.5)*(roomH/grid);
+      var dTX=txPos?Math.hypot(x-txPos[0],y-txPos[1]):1;
+      var dRX=rxPos?Math.hypot(x-rxPos[0],y-rxPos[1]):1;
+      // Path loss from TX at this point (proxy for signal power)
+      var dbTX=20*Math.log10(lambda/(4*Math.PI*Math.max(dTX,0.01)));
+      // Normalize to [0,1] where 0=weak (red), 1=strong (green)
+      var t=(dbTX-minDB)/range;
+      t=Math.max(0,Math.min(1,t));
+      // Blue(weak) -> Green(mid) -> Yellow(strong)
+      var r2,g2,b2;
+      if (t<0.5) { r2=Math.floor(t*2*30); g2=Math.floor(50+t*2*180); b2=Math.floor(200-t*2*150); }
+      else { r2=Math.floor(30+(t-0.5)*2*225); g2=Math.floor(230-(t-0.5)*2*50); b2=Math.floor(50-(t-0.5)*2*50); }
+      ctx.fillStyle='rgb('+Math.max(0,Math.min(255,r2))+','+Math.max(0,Math.min(255,g2))+','+Math.max(0,Math.min(255,b2))+')';
+      ctx.fillRect(pad+i*cw, pad+j*ch_val, cw+1, ch_val+1);
+    }
+  }
+  // Draw nodes
+  var toScr=function(nx,ny){ return [pad+(nx/roomW)*(w-2*pad), pad+(ny/roomH)*(h-2*pad)]; };
+  if (txPos) { var s=toScr(txPos[0],txPos[1]); ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(s[0],s[1],7,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle='#000'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillText('TX',s[0],s[1]-12); }
+  if (rxPos) { var s2=toScr(rxPos[0],rxPos[1]); ctx.fillStyle='#58a6ff'; ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(s2[0],s2[1],7,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle='#fff'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillText('RX',s2[0],s2[1]-12); }
+
+  // Legend
+  var lx=pad, ly=h-22, lw=(w-2*pad);
+  for (var k=0;k<40;k++) { var tk=k/40; var r3,g3,b3;
+    if (tk<0.5) { r3=Math.floor(tk*2*30); g3=Math.floor(50+tk*2*180); b3=Math.floor(200-tk*2*150); }
+    else { r3=Math.floor(30+(tk-0.5)*2*225); g3=Math.floor(230-(tk-0.5)*2*50); b3=Math.floor(50-(tk-0.5)*2*50); }
+    ctx.fillStyle='rgb('+Math.max(0,Math.min(255,r3))+','+Math.max(0,Math.min(255,g3))+','+Math.max(0,Math.min(255,b3))+')';
+    ctx.fillRect(lx+k*(lw/40), ly, lw/40+1, 10);
+  }
+  ctx.fillStyle='#8b949e'; ctx.font='9px monospace'; ctx.textAlign='left'; ctx.fillText(minDB.toFixed(0)+' dB', lx, ly-2);
+  ctx.textAlign='right'; ctx.fillText(maxDB.toFixed(0)+' dB', lx+lw, ly-2);
+  ctx.textAlign='center';
+  var boostStr=boostDB>0?'+'+boostDB.toFixed(1):boostDB.toFixed(1);
+  ctx.fillText('LOS path loss | RIS boost: '+boostStr+' dB', lx+lw/2, ly-2);
+}
+
+// ── Chart Helpers ──────────────────────────────────────────
+function makeScatter(canvasId, cache, key, label, data, xLabel, yLabel) {
+  try {
+    if (cache[key]) cache[key].destroy();
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    var pts = data;
+    if (data.length && Array.isArray(data[0])) {
+      pts = data.map(function(p) { return {x:p[0],y:p[1]}; });
+    }
+    cache[key] = new Chart(ctx, {
+      type:'scatter',
+      data:{datasets:[{label:label,data:pts,backgroundColor:'#58a6ff',pointRadius:2}]},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        scales:{
+          x:{title:{display:true,text:xLabel,color:'#8b949e'},grid:{color:'#30363d'},ticks:{color:'#8b949e'}},
+          y:{title:{display:true,text:yLabel,color:'#8b949e'},grid:{color:'#30363d'},ticks:{color:'#8b949e'}}
+        },
+        plugins:{legend:{labels:{color:'#c9d1d9'}}}
+      }
+    });
+  } catch(e) { console.error('Chart error ('+key+'):', e.message); }
+}
+function makeLine(canvasId, cache, key, datasets, xLabel, yLabel) {
+  try {
+    if (cache[key]) cache[key].destroy();
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    var n = (datasets[0]&&datasets[0].data) ? datasets[0].data.length : 0;
+    var labels = []; for (var i=0;i<n;i++) labels.push(i);
+    cache[key] = new Chart(ctx, {
+      type:'line',
+      data:{labels:labels, datasets:datasets.map(function(d) {
+        return {label:d.label,data:d.data,borderColor:d.borderColor||'#58a6ff',pointRadius:d.pointRadius||0,borderWidth:1.4,fill:d.fill||false,backgroundColor:d.backgroundColor||'transparent'};
+      })},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        scales:{
+          x:{title:{display:true,text:xLabel,color:'#8b949e'},grid:{color:'#30363d'},ticks:{color:'#8b949e',maxTicksLimit:8}},
+          y:{title:{display:true,text:yLabel,color:'#8b949e'},grid:{color:'#30363d'},ticks:{color:'#8b949e'}}
+        },
+        plugins:{legend:{labels:{color:'#c9d1d9',usePointStyle:true,boxWidth:8}}}
+      }
+    });
+  } catch(e) { console.error('Line chart error ('+key+'):', e.message); }
+}
+
+function makeBarChart(canvasId, cache, key, channelData) {
+  try {
+    if (cache[key]) cache[key].destroy();
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    if (!channelData || channelData.h_los_mag_db === undefined) return;
+    var labels = ['LOS', 'RIS', 'Total', 'Boost'];
+    var values = [
+      channelData.h_los_mag_db || 0,
+      channelData.h_ris_mag_db || 0,
+      channelData.h_total_mag_db || 0,
+      channelData.boost_db || 0
+    ];
+    var colors = ['#58a6ff', '#d29922', '#3fb950', values[3] >= 0 ? '#3fb950' : '#f85149'];
+    cache[key] = new Chart(ctx, {
+      type:'bar',
+      data:{labels:labels, datasets:[{label:'Magnitude (dB)', data:values, backgroundColor:colors, borderColor:colors, borderWidth:1}]},
+      options:{
+        responsive:true, maintainAspectRatio:false, animation:false,
+        scales:{
+          y:{title:{display:true,text:'dB',color:'#8b949e'},grid:{color:'#30363d'},ticks:{color:'#8b949e'}},
+          x:{grid:{color:'#30363d'},ticks:{color:'#8b949e'}}
+        },
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{label:function(ctx){return ctx.raw.toFixed(2)+' dB';}}}
+        }
+      }
+    });
+  } catch(e) {}
+}
+
+// ── Init ───────────────────────────────────────────────────
+loadTemplates();
+drawTopology();
+</script>
+</body>
+</html>

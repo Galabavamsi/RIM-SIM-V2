@@ -1,4 +1,3 @@
-import random
 
 def dumrsc(data, array_size):
     """

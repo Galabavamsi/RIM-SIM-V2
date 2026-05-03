@@ -1,0 +1,845 @@
+{
+    "name": "paper_style_room_coverage",
+    "description": "Paper-style room coverage scenario with one TX, one RIS, and a grid of receiver nodes.",
+    "room": {
+        "length": 10.0,
+        "width": 10.0,
+        "height": 10.0
+    },
+    "ris": [
+        {
+            "id": "ris_1",
+            "fc": 2399996950.0,
+            "type": "static",
+            "plane": 5,
+            "location": [
+                0.0,
+                5.0,
+                5.0
+            ],
+            "unit_cell_m_length": 0.05,
+            "unit_cell_n_length": 0.05,
+            "unit_cell_gap": 0.01,
+            "array_size": [
+                16,
+                16
+            ],
+            "phase_response": {
+                "1": [
+                    0.707,
+                    0.707
+                ]
+            },
+            "configuration_matrix": [
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ],
+                [
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1
+                ]
+            ]
+        }
+    ],
+    "nodes": [
+        {
+            "id": "tx_1",
+            "location": [
+                1.0,
+                1.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_1_1",
+            "location": [
+                2.0,
+                2.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_1_2",
+            "location": [
+                3.5,
+                2.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_1_3",
+            "location": [
+                5.0,
+                2.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_1_4",
+            "location": [
+                6.5,
+                2.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_1_5",
+            "location": [
+                8.0,
+                2.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_2_1",
+            "location": [
+                2.0,
+                3.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_2_2",
+            "location": [
+                3.5,
+                3.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_2_3",
+            "location": [
+                5.0,
+                3.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_2_4",
+            "location": [
+                6.5,
+                3.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_2_5",
+            "location": [
+                8.0,
+                3.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_3_1",
+            "location": [
+                2.0,
+                5.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_3_2",
+            "location": [
+                3.5,
+                5.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_3_3",
+            "location": [
+                5.0,
+                5.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_3_4",
+            "location": [
+                6.5,
+                5.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_3_5",
+            "location": [
+                8.0,
+                5.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_4_1",
+            "location": [
+                2.0,
+                6.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_4_2",
+            "location": [
+                3.5,
+                6.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_4_3",
+            "location": [
+                5.0,
+                6.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_4_4",
+            "location": [
+                6.5,
+                6.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_4_5",
+            "location": [
+                8.0,
+                6.5,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_5_1",
+            "location": [
+                2.0,
+                8.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_5_2",
+            "location": [
+                3.5,
+                8.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_5_3",
+            "location": [
+                5.0,
+                8.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_5_4",
+            "location": [
+                6.5,
+                8.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        },
+        {
+            "id": "rx_5_5",
+            "location": [
+                8.0,
+                8.0,
+                5.0
+            ],
+            "mobility": {
+                "type": "static",
+                "speed": 0.0
+            }
+        }
+    ],
+    "traffic": [
+        {
+            "mode": "transmit",
+            "node_id": "tx_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "waveform": {
+                "kind": "bpsk_bits",
+                "bits": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    1,
+                    0,
+                    0,
+                    1,
+                    0,
+                    1,
+                    0
+                ],
+                "amplitude": 0.1,
+                "samples_per_symbol": 10
+            }
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_1_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_1_2",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_1_3",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_1_4",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_1_5",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_2_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_2_2",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_2_3",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_2_4",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_2_5",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_3_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_3_2",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_3_3",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_3_4",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_3_5",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_4_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_4_2",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_4_3",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_4_4",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_4_5",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_5_1",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_5_2",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_5_3",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_5_4",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        },
+        {
+            "mode": "receive",
+            "node_id": "rx_5_5",
+            "fc": 2399996950.0,
+            "sample_rate": 5880.0,
+            "num_samps": 160
+        }
+    ]
+}

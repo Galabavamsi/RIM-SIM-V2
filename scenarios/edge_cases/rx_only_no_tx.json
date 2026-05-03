@@ -1,0 +1,13 @@
+{
+    "name": "rx_only_no_tx",
+    "description": "Single RX with no matching TX — must return zeros of correct length.",
+    "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+    "ris": [],
+    "nodes": [
+        {"id": "node_2", "location": [8.0, 8.0, 5.0], "mobility": {"type": "static", "speed": 0.0}}
+    ],
+    "channel": {"enable_noise": false},
+    "traffic": [
+        {"mode": "receive", "node_id": "node_2", "fc": 2400000000.0, "sample_rate": 5880.0, "num_samps": 33}
+    ]
+}

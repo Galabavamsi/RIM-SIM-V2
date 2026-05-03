@@ -1,15 +1,10 @@
 import numpy as np
 import os
-import json
 import sys
 import math
 
-import scipy
-
-import commpy
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import modules.simulator_functions as sim
+import modules.json_store as store
 
 
 
@@ -30,6 +25,72 @@ def noise(data, num_samples_if_empty, scale=0.001):
     data_np = np.array(data)
     noise_np = np.random.normal(0, scale, data_np.shape)
     return (data_np + noise_np).tolist()
+
+
+def _unit_vector(vec):
+    norm = np.linalg.norm(vec)
+    if norm == 0 or not np.isfinite(norm):
+        return None, norm
+    return vec / norm, norm
+
+
+def element_visibility(tx_location, element_location, rx_location, normal):
+    """
+    Returns the RIS angular visibility term for front-side illumination.
+
+    The previous implementation used abs(cos(theta)) to avoid fractional powers of
+    negative cosines. That prevents NaNs, but it also turns a physically back-side
+    path into a front-side contribution. This function keeps the mathematical
+    safety while preserving the surface orientation: negative cosines are blocked.
+    """
+    element = np.array(element_location, dtype=float)
+    normal_vec, normal_norm = _unit_vector(np.array(normal, dtype=float))
+    if normal_vec is None:
+        return 0.0
+
+    to_tx, r_in = _unit_vector(np.array(tx_location, dtype=float) - element)
+    to_rx, r_out = _unit_vector(np.array(rx_location, dtype=float) - element)
+    if to_tx is None or to_rx is None or r_in == 0 or r_out == 0:
+        return 0.0
+
+    cos_i = float(np.dot(to_tx, normal_vec))
+    cos_r = float(np.dot(to_rx, normal_vec))
+    if cos_i <= 0.0 or cos_r <= 0.0:
+        return 0.0
+    return math.sqrt(cos_i * cos_r)
+
+
+def reflection_coefficient(ris, state):
+    """
+    Convert an RIS configuration state into a complex reflection coefficient.
+
+    Preferred config format:
+        "phase_response": {"1": [real, imag]}
+
+    Numeric states without a lookup are treated as direct real-valued coefficients
+    for backward compatibility with the existing dummy controller.
+    """
+    response = ris.get("phase_response", {}) if isinstance(ris, dict) else {}
+    key = str(state)
+    if key in response:
+        value = response[key]
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            return complex(float(value[0]), float(value[1]))
+        return complex(value)
+    return complex(state)
+
+
+def free_space_coefficient(fc, distance):
+    """Baseband free-space field coefficient for a single path."""
+    if fc <= 0 or not math.isfinite(float(fc)):
+        raise ValueError("fc must be a positive finite frequency.")
+    if distance <= 0 or not math.isfinite(float(distance)):
+        return 0j
+    c = 3e8
+    wavelength = c / float(fc)
+    amplitude = wavelength / (4.0 * math.pi * distance)
+    phase = -2.0 * math.pi * distance / wavelength
+    return amplitude * np.exp(1j * phase)
 
 
 
@@ -173,47 +234,36 @@ def total_nlos_gain(fc, tx_location, rx_location):
     This is the sum of gains from each individual element path.
     """
     total_gain = 0j
-    with open("config/ris.json", "r") as f:
-        ris_config = json.load(f)
-    
+    ris_config = store.load_json("config/ris.json", default={"ris": []})
+
     for ris in ris_config["ris"]:
         normal = get_normal(ris["plane"])
-        ris_length = (ris["unit_cell_m_length"] + ris["unit_cell_gap"]) * ris["array_size"][0]
-        ris_width = (ris["unit_cell_n_length"] + ris["unit_cell_gap"]) * ris["array_size"][1]
         ris_configuration = ris["configuration_matrix"]
         coordinate_matrix = coordinate_matrix_gen(ris["plane"], ris["location"], ris["unit_cell_m_length"], ris["unit_cell_n_length"], ris["unit_cell_gap"], ris["array_size"])
-        phase_matrix = phase_matrix_gen(ris_configuration)
 
         for i in range(len(coordinate_matrix)):
             for j in range(len(coordinate_matrix[i])):
                 element_coordinate = coordinate_matrix[i][j]
-                b_n = phase_matrix[i][j]
+                b_n = reflection_coefficient(ris, ris_configuration[i][j])
                 
-                # Simplified nlos_element logic to return gain only
-                pt=1; gt=1; q=0.285; ep=1; c=3e8
-                r_in_vec = np.array(element_coordinate) - np.array(tx_location)
-                r_rn_vec = np.array(rx_location) - np.array(element_coordinate)
-                r_in = np.linalg.norm(r_in_vec)
-                r_rn = np.linalg.norm(r_rn_vec)
+                element = np.array(element_coordinate, dtype=float)
+                tx = np.array(tx_location, dtype=float)
+                rx = np.array(rx_location, dtype=float)
+                r_in = np.linalg.norm(element - tx)
+                r_rn = np.linalg.norm(rx - element)
+                visibility = element_visibility(tx_location, element_coordinate, rx_location, normal)
+                if visibility == 0.0:
+                    continue
 
-                if r_in == 0 or r_rn == 0: continue
-
-                cos_phi_i_arg = np.clip(np.dot(r_in_vec, normal) / r_in, -1.0, 1.0)
-                cos_phi_r_arg = np.clip(np.dot(r_rn_vec, normal) / r_rn, -1.0, 1.0)
-                phi_i = np.arccos(cos_phi_i_arg)
-                phi_r = np.arccos(cos_phi_r_arg)
-                cos_phi_i = np.abs(np.cos(phi_i))
-                cos_phi_r = np.abs(np.cos(phi_r))
-
-                p_rn_amplitude = pt * gt * q * ep * (ris_length * ris_width) * c
-                b = 4 * np.pi * fc
-                p_rn_amplitude = (p_rn_amplitude**2) / (b**2)
-                p_rn_amplitude *= np.pi * (cos_phi_i**(2*q)) * (cos_phi_r**(2*q))
-                p_rn_amplitude *= (1/(r_in**2)) * (1/(r_rn**2))
-                
-                # Correct phase calculation
-                phase_angle = -2 * np.pi * fc * (r_in + r_rn) / c
-                element_gain = b_n * np.sqrt(p_rn_amplitude) * np.exp(1j * phase_angle)
+                # Cascaded baseband field coefficient: Tx->element and element->Rx.
+                # The visibility term handles front-side incidence/reflection without
+                # ever raising negative cosines to fractional powers.
+                element_gain = (
+                    b_n
+                    * visibility
+                    * free_space_coefficient(fc, r_in)
+                    * free_space_coefficient(fc, r_rn)
+                )
                 total_gain += element_gain
 
     return total_gain
@@ -221,98 +271,21 @@ def total_nlos_gain(fc, tx_location, rx_location):
 
  
 #### function to generate LOS signal value for each tau samples #####
-def signal(complex_data, tx_location, rx_location, fc,counter,tau):
+def signal(complex_data, tx_location, rx_location, fc, counter, tau, sample_rate):
 
-    c = 3e8  # Speed of light
+    if not complex_data:
+        return []
+    if sample_rate <= 0 or not math.isfinite(float(sample_rate)):
+        raise ValueError("sample_rate must be a positive finite number.")
 
-    # Convert locations to numpy arrays and calculate distance
     tx_pos = np.array(tx_location)
     rx_pos = np.array(rx_location)
     distance = np.linalg.norm(rx_pos - tx_pos)
 
-    if distance == 0:
-        distance = 1e-6 # Avoid division by zero if locations are identical
-
-    Fs=int(6e4)
-    Ts=tau / len(complex_data)
-    ups=int(Ts * Fs)
-    N=len(complex_data)
-
-
-    t0 = 3*Ts  
-
-
-    # Calculate the filter coefficients (N=number of samples in filter)
-    _, rrc = commpy.filters.rrcosfilter(N=int(2*t0*Fs), alpha=1,Ts=Ts, Fs=Fs)
-    t_rrc = np.arange(len(rrc)) / Fs  # the time points that correspond to the filter values
-
-    dk=np.array(complex_data)
-    # t_symbols = Ts * np.arange(N)
-
-    x = np.zeros(ups*N, dtype='complex')
-    x[::ups] = dk  # every ups samples, the value of dn is inserted into the sequence
-    # t_x = np.arange(len(x))/Fs
-    u = np.convolve(x, rrc)
-
-    # --- LOS Path Calculation ---
-    t_los = (counter*tau + np.arange(len(u))/Fs) + distance/c
-    i_los = u.real
-    q_los = u.imag
-    iup_los = i_los * np.cos(2*np.pi*t_los*fc)  
-    qup_los = -q_los * np.sin(2*np.pi*t_los*fc)
-    s_los = iup_los + qup_los
-
-    # --- NLOS (RIS) Path Calculation ---
-    # 1. Calculate the total complex gain from all RIS elements
+    h_los = free_space_coefficient(fc, distance)
     nlos_gain = total_nlos_gain(fc, tx_location, rx_location)
-
-    # 2. Apply this gain to the baseband signal
-    u_nlos = u * nlos_gain
-
-    # 3. Upconvert the NLOS signal to passband
-    # Note: The time vector for NLOS would be different for each element.
-    # We use the LOS time as an approximation for simplicity here.
-    t_nlos = t_los 
-    i_nlos = u_nlos.real
-    q_nlos = u_nlos.imag
-    iup_nlos = i_nlos * np.cos(2*np.pi*t_nlos*fc)
-    qup_nlos = -q_nlos * np.sin(2*np.pi*t_nlos*fc)
-    s_nlos = iup_nlos + qup_nlos
-
-    # --- Combine LOS and NLOS signals at the receiver ---
-    s = s_nlos + s_los
-    # s = s_los
-
-    del_f = 0
-    # Apply path loss to the combined signal during down-conversion
-    idown = (s * np.cos(2*np.pi*(fc-(del_f))*(t_los)))/distance
-    qdown = (-s * np.sin(2*np.pi*(fc-(del_f))*(t_los)))/distance
-
-    BN = 1/(2*Ts )
-
-    cutoff = 5*BN        # arbitrary design parameters
-    lowpass_order = 51   
-    lowpass_delay = (lowpass_order // 2)/Fs  # a lowpass of order N delays the signal by N/2 samples (see plot)
-    # design the filter
-    lowpass = scipy.signal.firwin(lowpass_order, cutoff/(Fs/2))
-
-
-    idown_lp = scipy.signal.lfilter(lowpass, 1, idown)
-    qdown_lp = scipy.signal.lfilter(lowpass, 1, qdown)
-
-    v = 10*(idown_lp + 1j*qdown_lp)
-
-    
-
-    y = np.convolve(v, rrc) / (sum(rrc**2)) * 2
-
-    delay = int((2*t0 + lowpass_delay)*Fs)
-
-    t_y = np.arange(len(y))/Fs
-    t_samples = t_y[delay::ups]
-    y_samples = y[delay::ups]  
-
-    y_output=y_samples[:N]
+    total_channel = h_los + nlos_gain
+    y_output = np.array(complex_data, dtype=complex) * total_channel
 
     formatted_output = [[val.real, val.imag] for val in y_output]
 
@@ -320,7 +293,7 @@ def signal(complex_data, tx_location, rx_location, fc,counter,tau):
 
 
            
-def process_samples(data, tx_location, rx_location, fc,counter,tau):
+def process_samples(data, tx_location, rx_location, fc, counter, tau, sample_rate):
     
 
     #print(data)
@@ -335,7 +308,7 @@ def process_samples(data, tx_location, rx_location, fc,counter,tau):
         #print(sample)
         
         # Calculate LOS signal for the current sample
-    full_signal = np.array(signal(complex_data, tx_location, rx_location, fc, counter, tau))
+    full_signal = np.array(signal(complex_data, tx_location, rx_location, fc, counter, tau, sample_rate))
 
         # Calculate total NLOS signal (from all RIS) for the current sample
         # nlos_signal = np.array(total_nlos(sample, fc, tx_location, rx_location,counter,tau))

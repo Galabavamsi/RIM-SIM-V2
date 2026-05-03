@@ -1,0 +1,7 @@
+{
+  "traffic": [
+    {"mode": "transmit", "node_id": "TX", "fc": 2400000000.0, "sample_rate": 5880.0,
+     "waveform": {"kind": "bpsk_bits", "bits": [0,0,1,1,0,1,1,0,1,0,0,1,1,1,0,0], "amplitude": 0.1, "samples_per_symbol": 10}},
+    {"mode": "receive", "node_id": "RX", "fc": 2400000000.0, "sample_rate": 5880.0, "num_samps": 160}
+  ]
+}

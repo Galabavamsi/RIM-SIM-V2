@@ -1,0 +1,16 @@
+{
+    "name": "no_ris_los_only",
+    "description": "Two-node scenario with no RIS — LOS-only propagation.",
+    "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+    "ris": [],
+    "nodes": [
+        {"id": "node_1", "location": [1.0, 5.0, 5.0], "mobility": {"type": "static", "speed": 0.0}},
+        {"id": "node_2", "location": [9.0, 5.0, 5.0], "mobility": {"type": "static", "speed": 0.0}}
+    ],
+    "channel": {"enable_noise": false},
+    "traffic": [
+        {"mode": "transmit", "node_id": "node_1", "fc": 2400000000.0, "sample_rate": 5880.0,
+         "waveform": {"kind": "bpsk_bits", "bits": [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0], "amplitude": 0.1, "samples_per_symbol": 10}},
+        {"mode": "receive", "node_id": "node_2", "fc": 2400000000.0, "sample_rate": 5880.0, "num_samps": 120}
+    ]
+}

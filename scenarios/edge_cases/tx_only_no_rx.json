@@ -1,0 +1,14 @@
+{
+    "name": "tx_only_no_receiver",
+    "description": "Single TX with no matching RX — must complete by itself.",
+    "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+    "ris": [],
+    "nodes": [
+        {"id": "node_1", "location": [5.0, 2.0, 5.0], "mobility": {"type": "static", "speed": 0.0}}
+    ],
+    "channel": {"enable_noise": false},
+    "traffic": [
+        {"mode": "transmit", "node_id": "node_1", "fc": 2400000000.0, "sample_rate": 5880.0,
+         "waveform": {"kind": "bpsk_bits", "bits": [0, 0, 1, 1], "amplitude": 0.1, "samples_per_symbol": 10}}
+    ]
+}

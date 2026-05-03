@@ -1,19 +1,19 @@
-import json
 import numpy as np
-import os
+import uuid
 
+import modules.json_store as store
+import modules.validation as val
 
+TAU_DEFAULT = 0.002
 
 
 
 
 #### function to send transmiter request to simulator for a node ####
-def send_to_simulator(data, fc, sampling_rate, node_id):
-    with open('config/nodes.json', 'r+') as file:
-        config_data = json.load(file)
-
-        for node in config_data['nodes']:
-            if node['id'] == node_id:
+def send_to_simulator(data, fc, sampling_rate, node_id, *, tau=TAU_DEFAULT):
+    def mutate(config_data):
+        for node in config_data["nodes"]:
+            if node["id"] == node_id:
                 data_list = data
                 if isinstance(data, np.ndarray):
                     if np.iscomplexobj(data):
@@ -21,17 +21,20 @@ def send_to_simulator(data, fc, sampling_rate, node_id):
                     else:
                         data_list = data.tolist()
 
-                node['request'] = {
-                    'mode': 'transmit',
-                    'fc': fc,
-                    'sample_rate': sampling_rate,
-                    'data': data_list
+                streams = val.normalize_transmit_data(data_list)
+                val.validate_transmit_request(float(sampling_rate), streams, tau=tau)
+
+                node["request"] = {
+                    "request_id": str(uuid.uuid4()),
+                    "mode": "transmit",
+                    "fc": fc,
+                    "sample_rate": sampling_rate,
+                    "data": streams,
                 }
                 break
+        return config_data
 
-        file.seek(0)
-        json.dump(config_data, file, indent=4)
-        file.truncate()
+    store.update_json_file("config/nodes.json", mutate)
 
 
 
@@ -41,22 +44,27 @@ def send_to_simulator(data, fc, sampling_rate, node_id):
 
 
 #### function to send receiver request to simulator for a node ####
-def recieve_from_simulator(num_samps,fc,sampling_rate,node_id):
-    with open('config/nodes.json', 'r+') as file:
-        config_data = json.load(file)
-        for node in config_data['nodes']:
-            if node['id'] == node_id:
-                node['request'] = {
-                    'mode': 'receive',
-                    'fc': fc,
-                    'sample_rate': sampling_rate,
-                    'num_samps': num_samps
+def recieve_from_simulator(num_samps, fc, sampling_rate, node_id, *, tau=TAU_DEFAULT):
+    val.validate_receive_request(float(sampling_rate), num_samps, tau=tau)
+    def mutate(config_data):
+        for node in config_data["nodes"]:
+            if node["id"] == node_id:
+                node["request"] = {
+                    "request_id": str(uuid.uuid4()),
+                    "mode": "receive",
+                    "fc": fc,
+                    "sample_rate": sampling_rate,
+                    "num_samps": int(num_samps),
                 }
                 break
+        return config_data
 
-        file.seek(0)
-        json.dump(config_data, file, indent=4)
-        file.truncate()
+    store.update_json_file("config/nodes.json", mutate)
+
+
+def receive_from_simulator(num_samps, fc, sampling_rate, node_id, *, tau=TAU_DEFAULT):
+    """Correctly spelled alias for :func:`recieve_from_simulator`."""
+    recieve_from_simulator(num_samps, fc, sampling_rate, node_id, tau=tau)
     
 
 
@@ -66,13 +74,12 @@ def recieve_from_simulator(num_samps,fc,sampling_rate,node_id):
 
 
 def check_available_tx(fc):
-    with open('config/nodes.json', 'r') as file:
-        config_data = json.load(file)
-        available_ids = []
-        for node in config_data['nodes']:
-            if node['current_mode'] == 'transmit' and node['fc'] == fc:
-                available_ids.append(node['id'])
-        return available_ids
+    config_data = store.load_json("config/nodes.json")
+    available_ids = []
+    for node in config_data["nodes"]:
+        if node["current_mode"] == "transmit" and node["fc"] == fc:
+            available_ids.append(node["id"])
+    return available_ids
 
 
 
@@ -117,11 +124,10 @@ def add_signal(list1,list2):
 
 def get_location(id):
     """Retrieves the location of a node by its ID."""
-    with open('config/nodes.json', 'r') as file:
-        config_data = json.load(file)
-        for node in config_data['nodes']:
-            if node['id'] == id:
-                return node['location']
+    config_data = store.load_json("config/nodes.json")
+    for node in config_data["nodes"]:
+        if node["id"] == id:
+            return node["location"]
     # If no matching entry is found, return a default location
     return [0, 0, 0]
 
@@ -159,5 +165,3 @@ def interpolate_data(samples, num_to_insert):
     interpolated_list.append(samples[-1])
     
     return interpolated_list
-
-

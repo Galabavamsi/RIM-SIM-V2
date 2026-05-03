@@ -1,7 +1,4 @@
 import numpy as np
-import os
-import json
-import sys
 
 #### function to do mobility and update the node location for each tau ####
 def do_mobility(node, room_length, room_width, tau):

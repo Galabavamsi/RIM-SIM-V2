@@ -1,0 +1,19 @@
+{
+  "room": {"length": 60000.0, "width": 60000.0, "height": 200.0},
+  "ris": [{
+    "id": "ris_fm", "fc": 100000000.0, "type": "static", "plane": 5,
+    "location": [2000.0, 34.9, 52000.0],
+    "unit_cell_m_length": 0.25, "unit_cell_n_length": 0.25, "unit_cell_gap": 0.01,
+    "array_size": [8, 8],
+    "phase_response": {"1": [0.707, 0.707]},
+    "configuration_matrix": [
+      [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]
+    ]
+  }],
+  "nodes": [
+    {"id": "FM_TX", "location": [0.0, 200.0, 100.0], "mobility": {"type": "static"}},
+    {"id": "Village_RX", "location": [0.0, 100.0, 52000.0], "mobility": {"type": "static"}}
+  ],
+  "channel": {"enable_noise": true, "noise_figure_db": 8.0}
+}

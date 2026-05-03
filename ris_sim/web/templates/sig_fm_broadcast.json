@@ -1,0 +1,7 @@
+{
+  "traffic": [
+    {"mode": "transmit", "node_id": "FM_TX", "fc": 100000000.0, "sample_rate": 200000.0,
+     "waveform": {"kind": "bpsk_bits", "bits": [0,0,1,1,0,1,1,0,1,1,1,1,0,0,0,0], "amplitude": 1.0, "samples_per_symbol": 20}},
+    {"mode": "receive", "node_id": "Village_RX", "fc": 100000000.0, "sample_rate": 200000.0, "num_samps": 320}
+  ]
+}

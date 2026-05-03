@@ -1,0 +1,29 @@
+{
+  "room": {"length": 10.0, "width": 10.0, "height": 4.0},
+  "ris": [{
+    "id": "ris_1", "fc": 3500000000.0, "type": "static", "plane": 5,
+    "location": [0.0, 5.0, 2.0],
+    "unit_cell_m_length": 0.03, "unit_cell_n_length": 0.03, "unit_cell_gap": 0.005,
+    "array_size": [5, 8],
+    "phase_response": {
+      "1": [0.648, 0.761],
+      "2": [-0.897, -0.441]
+    },
+    "configuration_matrix": [
+      [2,2,1,1,2,2,1,1],
+      [2,2,1,1,2,2,1,1],
+      [2,2,1,1,2,2,1,1],
+      [2,2,1,1,2,2,1,1],
+      [2,2,1,1,2,2,1,1]
+    ]
+  }],
+  "nodes": [
+    {"id": "TX", "location": [2.0, 5.0, 2.0], "mobility": {"type": "static"}},
+    {"id": "RX_0", "location": [3.0, 5.0, 2.0], "mobility": {"type": "static"}},
+    {"id": "RX_10", "location": [3.2, 5.5, 2.0], "mobility": {"type": "static"}},
+    {"id": "RX_20", "location": [3.5, 6.2, 2.0], "mobility": {"type": "static"}},
+    {"id": "RX_30", "location": [4.0, 6.5, 2.0], "mobility": {"type": "static"}},
+    {"id": "RX_40", "location": [4.5, 6.8, 2.0], "mobility": {"type": "static"}}
+  ],
+  "channel": {"enable_noise": true, "noise_figure_db": 5.0}
+}

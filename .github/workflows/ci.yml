@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest ris_sim/tests -v --tb=short
+
+      - name: Check determinism (golden test)
+        run: python -m pytest ris_sim/tests/test_golden.py -v -k "test_deterministic"
+
+  golden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Generate golden file (first run)
+        run: python -m pytest ris_sim/tests/test_golden.py::TestGoldenOutput::test_golden_output_matches_stored_reference -v
+
+      - name: Verify golden file (second run)
+        run: python -m pytest ris_sim/tests/test_golden.py::TestGoldenOutput::test_golden_output_matches_stored_reference -v
+
+      - name: Upload golden artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-output
+          path: ris_sim/tests/golden/two_node_ris_seed42.npz

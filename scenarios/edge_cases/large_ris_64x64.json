@@ -1,0 +1,22 @@
+{
+    "name": "large_ris_64x64",
+    "description": "Stress test: 64x64 RIS (4096 elements).",
+    "room": {"length": 20.0, "width": 20.0, "height": 20.0},
+    "ris": [{
+        "id": "ris_large", "fc": 2400000000.0, "type": "static", "plane": 5,
+        "location": [0.0, 10.0, 10.0],
+        "unit_cell_m_length": 0.01, "unit_cell_n_length": 0.01, "unit_cell_gap": 0.005,
+        "array_size": [64, 64],
+        "configuration_matrix": [[1] * 64] * 64
+    }],
+    "nodes": [
+        {"id": "node_1", "location": [5.0, 5.0, 10.0], "mobility": {"type": "static", "speed": 0.0}},
+        {"id": "node_2", "location": [15.0, 15.0, 10.0], "mobility": {"type": "static", "speed": 0.0}}
+    ],
+    "channel": {"enable_noise": false},
+    "traffic": [
+        {"mode": "transmit", "node_id": "node_1", "fc": 2400000000.0, "sample_rate": 5880.0,
+         "waveform": {"kind": "bpsk_bits", "bits": [0, 1], "amplitude": 0.1, "samples_per_symbol": 10}},
+        {"mode": "receive", "node_id": "node_2", "fc": 2400000000.0, "sample_rate": 5880.0, "num_samps": 20}
+    ]
+}

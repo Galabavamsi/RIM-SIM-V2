@@ -1,0 +1,9 @@
+{
+  "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+  "ris": [],
+  "nodes": [
+    {"id": "TX", "location": [1.0, 5.0, 5.0], "mobility": {"type": "static"}},
+    {"id": "RX", "location": [9.0, 5.0, 5.0], "mobility": {"type": "static"}}
+  ],
+  "channel": {"enable_noise": true, "noise_figure_db": 3.0}
+}

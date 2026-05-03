@@ -1,0 +1,16 @@
+{
+  "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+  "ris": [{
+    "id": "ris_1", "fc": 2400000000.0, "type": "static", "plane": 5,
+    "location": [0.0, 5.0, 5.0],
+    "unit_cell_m_length": 0.05, "unit_cell_n_length": 0.05, "unit_cell_gap": 0.01,
+    "array_size": [8, 8],
+    "phase_response": {"1": [0.707, 0.707]},
+    "configuration_matrix": [[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]]
+  }],
+  "nodes": [
+    {"id": "TX", "location": [2.0, 4.0, 5.0], "mobility": {"type": "static"}},
+    {"id": "RX", "location": [2.0, 6.0, 5.0], "mobility": {"type": "static"}}
+  ],
+  "channel": {"enable_noise": true, "noise_figure_db": 5.0}
+}

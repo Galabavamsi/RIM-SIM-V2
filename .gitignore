@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+*.lock
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+ris_sim/config/*.lock
+examples/*/runs/
+*.npz
+!ris_sim/tests/golden/*.npz
+
+# PDFs / large binaries
+*.pdf
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# dotenv
+.env

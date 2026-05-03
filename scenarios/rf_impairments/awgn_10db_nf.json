@@ -1,0 +1,16 @@
+{
+    "name": "awgn_with_noise_figure",
+    "description": "Two nodes with 10 dB noise figure AWGN.",
+    "room": {"length": 10.0, "width": 10.0, "height": 10.0},
+    "ris": [],
+    "nodes": [
+        {"id": "node_1", "location": [1.0, 5.0, 5.0], "mobility": {"type": "static", "speed": 0.0}},
+        {"id": "node_2", "location": [2.0, 5.0, 5.0], "mobility": {"type": "static", "speed": 0.0}}
+    ],
+    "channel": {"enable_noise": true, "noise_figure_db": 10.0},
+    "traffic": [
+        {"mode": "transmit", "node_id": "node_1", "fc": 2400000000.0, "sample_rate": 5880.0,
+         "waveform": {"kind": "bpsk_bits", "bits": [0, 1, 0, 1, 1, 1, 0, 0], "amplitude": 0.1, "samples_per_symbol": 10}},
+        {"mode": "receive", "node_id": "node_2", "fc": 2400000000.0, "sample_rate": 5880.0, "num_samps": 80}
+    ]
+}
