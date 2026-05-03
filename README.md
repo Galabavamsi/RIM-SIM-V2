@@ -126,10 +126,10 @@ Open `http://127.0.0.1:8080` — select topology + signal from dropdowns, press 
 ## Installation
 
 ```bash
-# From PyPI (when published)
-pip install ris-sim
+# From GitHub (recommended)
+pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git
 
-# From source
+# Or clone and install locally
 git clone https://github.com/Galabavamsi/RIM-SIM-V2.git
 cd RIM-SIM-V2
 pip install -e .
