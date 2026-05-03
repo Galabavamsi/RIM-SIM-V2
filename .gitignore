@@ -32,7 +32,8 @@ examples/*/runs/
 # PDFs / large binaries
 *.pdf
 
-# Planning documents
+# Planning / docs
+docs/
 *IMPLEMENTATION_PLAN*
 *DASHBOARD_PLAN*
 *PHASE_G_PLAN*
