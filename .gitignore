@@ -32,6 +32,12 @@ examples/*/runs/
 # PDFs / large binaries
 *.pdf
 
+# Planning documents
+*IMPLEMENTATION_PLAN*
+*DASHBOARD_PLAN*
+*PHASE_G_PLAN*
+*PROJECT_REVIEW*
+
 # Jupyter
 .ipynb_checkpoints/
 
