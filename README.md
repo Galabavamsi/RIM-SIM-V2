@@ -9,7 +9,7 @@
 A production-grade software emulator for **Reconfigurable Intelligent Surface (RIS)** assisted wireless communication systems. Replicates SDR behavior and RIS effects at the baseband level — no physical hardware required.
 
 ```bash
-pip install ris-sim
+pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git
 ris-sim dashboard
 ```
 
@@ -107,7 +107,7 @@ graph TB
 
 ```bash
 # Install
-pip install ris-sim
+pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git
 
 # Run a scenario directly
 ris-sim run examples/two_node_ris/scenario.json
