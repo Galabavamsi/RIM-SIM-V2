@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RIS-SIM Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -14,11 +22,14 @@ body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;
 .tab-bar button.active{color:#58a6ff;border-bottom-color:#58a6ff}
 .tab-content{flex:1;overflow:auto;display:none;padding:12px}
 .tab-content.active{display:flex;flex-direction:column}
-#tab-config.active{display:flex;gap:12px}
-#tab-config.active .left{width:380px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex-shrink:0}
-#tab-config.active .right{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+/* #tab-config layout overridden below at the bottom of this stylesheet (with .config-cols wrapper) */
 #tab-topology.active{position:relative}
-#tab-topology canvas{width:100%;height:100%}
+#tab-topology #topo-canvas, #tab-topology #topo-3d{width:100%;height:100%;position:absolute;inset:0}
+#tab-topology #topo-canvas.hidden, #tab-topology #topo-3d.hidden{display:none}
+.topo-toolbar{position:absolute;top:12px;left:12px;z-index:10;background:rgba(13,17,23,.92);padding:5px 7px;border:1px solid #30363d;border-radius:5px;display:flex;gap:6px;align-items:center}
+.topo-toolbar .legend{font-size:10px;color:#8b949e;display:flex;gap:8px;align-items:center}
+.topo-toolbar .legend .swatch{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
+.topo-toolbar .legend .ris-swatch{width:12px;height:8px;border-radius:1px}
 #tab-live.active .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;flex:1}
 #tab-results.active .grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px;flex:1}
 .chart-box{background:#161b22;border:1px solid #30363d;border-radius:6px;position:relative;min-height:200px}
@@ -44,6 +55,74 @@ body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;
 .metrics-table td{padding:4px 8px;border-bottom:1px solid #30363d}
 .metrics-table td:first-child{color:#8b949e}
 .metrics-table td:last-child{text-align:right;font-weight:600}
+/* Scenario library — paper-grounded scenarios at the top of the Config tab */
+.scenario-library{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 12px;flex-shrink:0}
+.scenario-library-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.scenario-library-header span{font-size:12px;color:#58a6ff;font-weight:600;letter-spacing:.02em}
+.scenario-library-header small{font-size:11px;color:#8b949e}
+.scenarios-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-behavior:smooth}
+.scenarios-row::-webkit-scrollbar{height:8px}
+.scenarios-row::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}
+.scenario-card{flex:0 0 280px;background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,transform .15s}
+.scenario-card:hover{border-color:#58a6ff;transform:translateY(-1px)}
+.scenario-card.cat-quickstart{border-left:3px solid #3fb950}
+.scenario-card.cat-validation{border-left:3px solid #58a6ff}
+.scenario-card.cat-application{border-left:3px solid #d29922}
+.scenario-card .name{font-size:13px;font-weight:600;color:#c9d1d9;line-height:1.2}
+.scenario-card .subtitle{font-size:11px;color:#8b949e;font-style:italic}
+.scenario-card .desc{font-size:11px;color:#a8b1bb;line-height:1.4;flex:1;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.scenario-card .meta-row{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0}
+.scenario-card .tag{font-size:9.5px;color:#8b949e;background:#21262d;border:1px solid #30363d;padding:1px 6px;border-radius:9px;letter-spacing:.02em}
+.scenario-card .tag.freq{color:#58a6ff;border-color:#1f6fb3}
+.scenario-card .actions{display:flex;gap:6px;margin-top:4px}
+.scenario-card .actions button{flex:1;padding:5px 8px;font-size:11px;background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:3px;cursor:pointer;transition:background .12s}
+.scenario-card .actions button:hover{background:#30363d}
+.scenario-card .actions button.run{background:#238636;color:#fff;font-weight:600;border-color:#2ea043}
+.scenario-card .actions button.run:hover{background:#2ea043}
+#tab-config.active{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+#tab-config .config-cols{display:flex;gap:12px;flex:1;min-height:0}
+#tab-config .config-cols .left{width:380px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex-shrink:0}
+#tab-config .config-cols .right{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+
+/* Panel header with Form/JSON toggle (also reused by the topology 2D/3D toolbar) */
+.panel h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mode-toggle{display:inline-flex;background:#0d1117;border:1px solid #30363d;border-radius:4px;overflow:hidden}
+.mode-btn{padding:3px 10px;font-size:11px;background:transparent;color:#8b949e;border:none;cursor:pointer;font-weight:500;font-family:'Segoe UI',system-ui,sans-serif}
+.mode-btn:hover{background:#21262d;color:#c9d1d9}
+.mode-btn.active{background:#1f6fb3;color:#fff}
+
+/* Form-mode widgets */
+.form-mode{display:flex;flex-direction:column;gap:6px}
+.form-mode.hidden, .json-mode.hidden{display:none}
+.form-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.form-row label{font-size:11px;color:#8b949e;display:flex;align-items:center;gap:4px;flex:1;min-width:80px}
+.form-row label .lbl{min-width:60px;color:#8b949e}
+.form-row input[type="number"], .form-row input[type="text"], .form-row select{
+  flex:1;min-width:50px;padding:3px 6px;font:12px 'Cascadia Code',Consolas,monospace;
+  background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:3px
+}
+.form-row input[type="number"]:focus, .form-row input[type="text"]:focus, .form-row select:focus{
+  border-color:#58a6ff;outline:none
+}
+.form-row input[type="checkbox"]{accent-color:#58a6ff;cursor:pointer}
+.form-row .unit{font-size:10px;color:#6e7681;font-style:italic;margin-left:2px}
+.form-section{padding:5px 0;border-top:1px dashed #30363d;margin-top:4px}
+.form-section:first-child{border-top:none;margin-top:0;padding-top:0}
+.form-section .section-title{font-size:10px;color:#58a6ff;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+
+/* Node list editor */
+.node-table{width:100%;font-size:11px;border-collapse:collapse}
+.node-table th{text-align:left;color:#8b949e;font-weight:400;padding:3px 4px;border-bottom:1px solid #30363d;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.node-table td{padding:2px 4px;border-bottom:1px solid #21262d}
+.node-table tr:hover td{background:#1c2129}
+.node-table input{padding:2px 4px;font:11px 'Cascadia Code',Consolas,monospace;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:2px;width:100%;box-sizing:border-box}
+.node-table .num{width:55px}
+.node-table .id{min-width:70px}
+.node-table .actions{width:24px;text-align:center}
+.node-table .delete{padding:1px 6px;background:transparent;color:#8b949e;border:none;cursor:pointer;font-size:13px;border-radius:2px}
+.node-table .delete:hover{color:#f85149;background:#3a1213}
+.add-node-btn{width:100%;padding:4px 8px;font-size:11px;background:#0d1117;color:#3fb950;border:1px dashed #30363d;border-radius:3px;cursor:pointer;margin-top:4px}
+.add-node-btn:hover{background:#1c2129;border-color:#3fb950}
 </style>
 </head>
 <body>
@@ -57,6 +136,16 @@ body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;
 
 <!-- CONFIG TAB -->
 <div class="tab-content active" id="tab-config">
+  <!-- Scenario library: paper-grounded scenarios as cards -->
+  <div class="scenario-library">
+    <div class="scenario-library-header">
+      <span>Scenario Library</span>
+      <small>Click <b>Use</b> to load into the editor or <b>Run</b> to start immediately</small>
+    </div>
+    <div id="scenarios-row" class="scenarios-row"></div>
+  </div>
+
+  <div class="config-cols">
   <div class="left">
     <div class="panel">
       <div class="row">
@@ -71,17 +160,92 @@ body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;
       </div>
       <div id="config-errors" class="err"></div>
     </div>
-    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Room</h3>
-      <textarea id="cfg-room" oninput="onCfgChange()">{ "length": 10, "width": 10, "height": 10 }</textarea></div>
-    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Channel</h3>
-      <textarea id="cfg-channel" oninput="onCfgChange()">{ "enable_noise": true, "noise_figure_db": 5 }</textarea></div>
+    <div class="panel">
+      <h3>Room
+        <span class="mode-toggle">
+          <button class="mode-btn active" onclick="setMode('room','form')">Form</button>
+          <button class="mode-btn" onclick="setMode('room','json')">JSON</button>
+        </span>
+      </h3>
+      <div class="form-mode" id="form-room">
+        <div class="form-row">
+          <label><span class="lbl">Length</span><input type="number" id="form-room-length" min="0.1" step="0.1" value="10" oninput="formChanged('room')"><span class="unit">m</span></label>
+        </div>
+        <div class="form-row">
+          <label><span class="lbl">Width</span><input type="number" id="form-room-width"  min="0.1" step="0.1" value="10" oninput="formChanged('room')"><span class="unit">m</span></label>
+        </div>
+        <div class="form-row">
+          <label><span class="lbl">Height</span><input type="number" id="form-room-height" min="0.1" step="0.1" value="10" oninput="formChanged('room')"><span class="unit">m</span></label>
+        </div>
+      </div>
+      <textarea class="json-mode hidden" id="cfg-room" oninput="onCfgChange();syncFormFromJson('room')">{ "length": 10, "width": 10, "height": 10 }</textarea>
+    </div>
+
+    <div class="panel">
+      <h3>Channel
+        <span class="mode-toggle">
+          <button class="mode-btn active" onclick="setMode('channel','form')">Form</button>
+          <button class="mode-btn" onclick="setMode('channel','json')">JSON</button>
+        </span>
+      </h3>
+      <div class="form-mode" id="form-channel">
+        <div class="form-section">
+          <div class="form-row">
+            <label><input type="checkbox" id="form-ch-noise" checked onchange="formChanged('channel')"> Enable AWGN noise</label>
+          </div>
+          <div class="form-row">
+            <label><span class="lbl">Noise figure</span><input type="number" id="form-ch-nf" min="0" step="0.5" value="5" oninput="formChanged('channel')"><span class="unit">dB</span></label>
+            <label><span class="lbl">Temp</span><input type="number" id="form-ch-temp" min="1" step="10" value="290" oninput="formChanged('channel')"><span class="unit">K</span></label>
+          </div>
+        </div>
+        <div class="form-section">
+          <div class="section-title">Small-scale fading</div>
+          <div class="form-row">
+            <label><input type="checkbox" id="form-ch-fade" onchange="formChanged('channel')"> Enable fading</label>
+            <label><span class="lbl">Model</span>
+              <select id="form-ch-fade-model" onchange="formChanged('channel')">
+                <option value="rayleigh">Rayleigh</option>
+                <option value="rician">Rician</option>
+              </select>
+            </label>
+          </div>
+          <div class="form-row">
+            <label><span class="lbl">Doppler</span><input type="number" id="form-ch-doppler" min="0" step="1" value="50" oninput="formChanged('channel')"><span class="unit">Hz</span></label>
+            <label><span class="lbl">K-factor</span><input type="number" id="form-ch-kfactor" step="0.5" value="10" oninput="formChanged('channel')"><span class="unit">dB</span></label>
+          </div>
+        </div>
+      </div>
+      <textarea class="json-mode hidden" id="cfg-channel" oninput="onCfgChange();syncFormFromJson('channel')">{ "enable_noise": true, "noise_figure_db": 5 }</textarea>
+    </div>
   </div>
   <div class="right">
-    <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">Nodes</h3>
-      <textarea id="cfg-nodes" oninput="onCfgChange()">[
+    <div class="panel">
+      <h3>Nodes
+        <span class="mode-toggle">
+          <button class="mode-btn active" onclick="setMode('nodes','form')">Form</button>
+          <button class="mode-btn" onclick="setMode('nodes','json')">JSON</button>
+        </span>
+      </h3>
+      <div class="form-mode" id="form-nodes">
+        <table class="node-table">
+          <thead>
+            <tr>
+              <th class="id">ID</th>
+              <th>x</th><th>y</th><th>z</th>
+              <th>Mobility</th>
+              <th>Speed (m/s)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="node-table-body"></tbody>
+        </table>
+        <button class="add-node-btn" onclick="addNodeRow()">+ Add node</button>
+      </div>
+      <textarea class="json-mode hidden" id="cfg-nodes" oninput="onCfgChange();syncFormFromJson('nodes')">[
   { "id": "node_1", "location": [2, 4, 5], "mobility": { "type": "static" } },
   { "id": "node_2", "location": [2, 6, 5], "mobility": { "type": "static" } }
-]</textarea></div>
+]</textarea>
+    </div>
     <div class="panel"><h3 onclick="this.nextElementSibling.classList.toggle('hidden')">RIS Panels</h3>
       <textarea id="cfg-ris" oninput="onCfgChange()">[
   { "id": "ris_1", "fc": 2.4e9, "type": "static", "plane": 5, "location": [0, 5, 5],
@@ -99,10 +263,26 @@ body{font:13px 'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#c9d1d9;
   { "mode": "receive", "node_id": "node_2", "fc": 2.4e9, "sample_rate": 5880, "num_samps": 120 }
 ]</textarea></div>
   </div>
+  </div><!-- /.config-cols -->
 </div>
 
 <!-- TOPOLOGY TAB -->
-<div class="tab-content" id="tab-topology"><canvas id="topo-canvas"></canvas></div>
+<div class="tab-content" id="tab-topology">
+  <div class="topo-toolbar">
+    <span class="mode-toggle">
+      <button class="mode-btn active" id="topo-2d-btn" onclick="setTopoMode('2d')">2D top-down</button>
+      <button class="mode-btn" id="topo-3d-btn" onclick="setTopoMode('3d')">3D view</button>
+    </span>
+    <span class="legend">
+      <span><span class="swatch" style="background:#3fb950"></span>TX</span>
+      <span><span class="swatch" style="background:#58a6ff"></span>RX</span>
+      <span><span class="swatch" style="background:#d29922"></span>idle</span>
+      <span><span class="swatch ris-swatch" style="background:#d4a72c"></span>RIS</span>
+    </span>
+  </div>
+  <canvas id="topo-canvas"></canvas>
+  <div id="topo-3d" class="hidden"></div>
+</div>
 
 <!-- LIVE TAB -->
 <div class="tab-content" id="tab-live">
@@ -163,7 +343,7 @@ var simState = {nodes:[],ris:[],latest_iq:{}};
 var allSamples = {};
 var liveCharts = {}, resultsCharts = {};
 
-ws.onopen = function() { setStatus('idle','Connected'); loadTemplates(); };
+ws.onopen = function() { setStatus('idle','Connected'); loadTemplates(); loadScenarios(); };
 ws.onclose = function() { setStatus('error','Disconnected'); };
 ws.onerror = function(e) { };
 ws.onmessage = function(evt) {
@@ -308,6 +488,239 @@ async function applySignal() {
     setStatus('idle','Signal: ' + n);
   } catch(e) {}
 }
+
+// ── Form / JSON toggle for Configuration panels ──────────────────
+// Each panel keeps its source of truth in the `cfg-*` textarea (the engine
+// reads from there). Form widgets are a presentation layer that serializes
+// back to the textarea on every input.
+var MOBILITY_TYPES = ['static', 'random_walk', 'random_waypoint', 'random_direction', 'gauss_markov'];
+
+function setMode(panel, mode) {
+  var formEl = document.getElementById('form-' + panel);
+  var jsonEl = document.getElementById('cfg-' + panel);
+  var btns = jsonEl.parentElement.querySelectorAll('.mode-btn');
+  btns.forEach(function(b) { b.classList.remove('active'); });
+  if (mode === 'form') {
+    if (formEl) formEl.classList.remove('hidden');
+    jsonEl.classList.add('hidden');
+    btns[0].classList.add('active');
+    syncFormFromJson(panel);
+  } else {
+    if (formEl) formEl.classList.add('hidden');
+    jsonEl.classList.remove('hidden');
+    btns[1].classList.add('active');
+  }
+}
+
+function _readNum(id, fallback) {
+  var el = document.getElementById(id);
+  if (!el) return fallback;
+  var v = parseFloat(el.value);
+  return isFinite(v) ? v : fallback;
+}
+function _readBool(id) {
+  var el = document.getElementById(id);
+  return !!(el && el.checked);
+}
+function _readStr(id, fallback) {
+  var el = document.getElementById(id);
+  return el ? (el.value || fallback) : fallback;
+}
+
+function formChanged(panel) {
+  // Read form widgets, write back to the cfg-* textarea, trigger validation.
+  var jsonEl = document.getElementById('cfg-' + panel);
+  if (!jsonEl) return;
+
+  if (panel === 'room') {
+    var room = {
+      length: _readNum('form-room-length', 10),
+      width:  _readNum('form-room-width', 10),
+      height: _readNum('form-room-height', 10),
+    };
+    jsonEl.value = JSON.stringify(room, null, 2);
+
+  } else if (panel === 'channel') {
+    var ch = {
+      enable_noise:   _readBool('form-ch-noise'),
+      noise_figure_db: _readNum('form-ch-nf', 5),
+      temperature_k:   _readNum('form-ch-temp', 290),
+    };
+    if (_readBool('form-ch-fade')) {
+      ch.small_scale = {
+        enabled: true,
+        model: _readStr('form-ch-fade-model', 'rayleigh'),
+        max_doppler_hz: _readNum('form-ch-doppler', 50),
+        k_factor_db: _readNum('form-ch-kfactor', 10),
+      };
+    }
+    jsonEl.value = JSON.stringify(ch, null, 2);
+
+  } else if (panel === 'nodes') {
+    var rows = document.querySelectorAll('#node-table-body tr');
+    var nodes = [];
+    rows.forEach(function(r) {
+      var inputs = r.querySelectorAll('input, select');
+      var node = {
+        id: inputs[0].value || ('node_' + (nodes.length + 1)),
+        location: [
+          parseFloat(inputs[1].value) || 0,
+          parseFloat(inputs[2].value) || 0,
+          parseFloat(inputs[3].value) || 0,
+        ],
+        mobility: { type: inputs[4].value || 'static' },
+      };
+      var speed = parseFloat(inputs[5].value);
+      if (isFinite(speed) && speed > 0) node.mobility.speed = speed;
+      nodes.push(node);
+    });
+    jsonEl.value = JSON.stringify(nodes, null, 2);
+  }
+  onCfgChange();
+}
+
+function syncFormFromJson(panel) {
+  // Parse cfg-* textarea, populate form inputs (best-effort).
+  var jsonEl = document.getElementById('cfg-' + panel);
+  if (!jsonEl) return;
+  var data;
+  try { data = JSON.parse(jsonEl.value); } catch(e) { return; }
+
+  if (panel === 'room' && data && typeof data === 'object') {
+    var rEl = document.getElementById('form-room-length');
+    if (rEl) rEl.value = data.length != null ? data.length : 10;
+    document.getElementById('form-room-width').value  = data.width  != null ? data.width  : 10;
+    document.getElementById('form-room-height').value = data.height != null ? data.height : 10;
+
+  } else if (panel === 'channel' && data && typeof data === 'object') {
+    document.getElementById('form-ch-noise').checked = !!data.enable_noise;
+    document.getElementById('form-ch-nf').value      = data.noise_figure_db != null ? data.noise_figure_db : 5;
+    document.getElementById('form-ch-temp').value    = data.temperature_k   != null ? data.temperature_k   : 290;
+    var ss = data.small_scale || {};
+    document.getElementById('form-ch-fade').checked    = !!ss.enabled;
+    document.getElementById('form-ch-fade-model').value= ss.model || 'rayleigh';
+    document.getElementById('form-ch-doppler').value   = ss.max_doppler_hz != null ? ss.max_doppler_hz : 50;
+    document.getElementById('form-ch-kfactor').value   = ss.k_factor_db    != null ? ss.k_factor_db    : 10;
+
+  } else if (panel === 'nodes' && Array.isArray(data)) {
+    renderNodeTable(data);
+  }
+}
+
+function renderNodeTable(nodes) {
+  var body = document.getElementById('node-table-body');
+  if (!body) return;
+  body.innerHTML = '';
+  nodes.forEach(function(n, idx) { body.appendChild(_buildNodeRow(n, idx)); });
+}
+
+function _buildNodeRow(node, idx) {
+  var tr = document.createElement('tr');
+  var loc = node.location || [0, 0, 0];
+  var mob = node.mobility || { type: 'static' };
+  var html = '';
+  html += '<td><input class="id" type="text" value="' + escapeHtml(node.id || ('node_' + (idx + 1))) + '" oninput="formChanged(\'nodes\')"></td>';
+  html += '<td><input class="num" type="number" step="0.1" value="' + (loc[0] != null ? loc[0] : 0) + '" oninput="formChanged(\'nodes\')"></td>';
+  html += '<td><input class="num" type="number" step="0.1" value="' + (loc[1] != null ? loc[1] : 0) + '" oninput="formChanged(\'nodes\')"></td>';
+  html += '<td><input class="num" type="number" step="0.1" value="' + (loc[2] != null ? loc[2] : 0) + '" oninput="formChanged(\'nodes\')"></td>';
+  html += '<td><select onchange="formChanged(\'nodes\')">';
+  MOBILITY_TYPES.forEach(function(t) {
+    html += '<option value="' + t + '"' + ((mob.type || 'static') === t ? ' selected' : '') + '>' + t + '</option>';
+  });
+  html += '</select></td>';
+  html += '<td><input class="num" type="number" step="0.1" min="0" value="' + (mob.speed != null ? mob.speed : '') + '" placeholder="0" oninput="formChanged(\'nodes\')"></td>';
+  html += '<td class="actions"><button class="delete" title="Delete node" onclick="this.closest(\'tr\').remove();formChanged(\'nodes\')">×</button></td>';
+  tr.innerHTML = html;
+  return tr;
+}
+
+function addNodeRow() {
+  var idx = document.querySelectorAll('#node-table-body tr').length;
+  document.getElementById('node-table-body').appendChild(
+    _buildNodeRow({ id: 'node_' + (idx + 1), location: [0, 0, 0], mobility: { type: 'static' } }, idx)
+  );
+  formChanged('nodes');
+}
+
+// Repopulate every form panel from its JSON textarea (e.g. after a scenario card loads)
+function refreshAllForms() {
+  ['room', 'channel', 'nodes'].forEach(syncFormFromJson);
+  // Also refresh the 3D scene if it's currently visible
+  if (window._topo3dDraw) {
+    var div3d = document.getElementById('topo-3d');
+    if (div3d && !div3d.classList.contains('hidden')) window._topo3dDraw();
+  }
+}
+
+// ── Scenario Library (paper-grounded scenarios as cards) ─────────
+async function loadScenarios() {
+  var row = document.getElementById('scenarios-row');
+  if (!row) return;
+  try {
+    var r = await fetch('/api/scenarios');
+    if (!r.ok) return;
+    var d = await r.json();
+    if (!d.scenarios || d.scenarios.length === 0) {
+      row.innerHTML = '<div style="color:#8b949e;font-size:11px;padding:10px">No featured scenarios installed.</div>';
+      return;
+    }
+    row.innerHTML = '';
+    d.scenarios.forEach(function(s) { row.appendChild(renderScenarioCard(s)); });
+  } catch(e) { /* silent */ }
+}
+
+function renderScenarioCard(s) {
+  var card = document.createElement('div');
+  card.className = 'scenario-card cat-' + (s.category || 'application');
+  var html = '';
+  html += '<div class="name">' + escapeHtml(s.name || s.id) + '</div>';
+  if (s.subtitle) html += '<div class="subtitle">' + escapeHtml(s.subtitle) + '</div>';
+  if (s.description) html += '<div class="desc">' + escapeHtml(s.description) + '</div>';
+  html += '<div class="meta-row">';
+  if (s.frequency_label) html += '<span class="tag freq">' + escapeHtml(s.frequency_label) + '</span>';
+  if (s.topology_label)  html += '<span class="tag">' + escapeHtml(s.topology_label) + '</span>';
+  if (s.estimated_runtime_s != null) html += '<span class="tag">~' + s.estimated_runtime_s + ' s</span>';
+  html += '</div>';
+  if (s.citation) html += '<div class="subtitle" style="font-size:10px;opacity:.75">' + escapeHtml(s.citation) + '</div>';
+  html += '<div class="actions">';
+  html += '<button onclick="useScenario(\'' + s.id + '\', false)">Use</button>';
+  html += '<button class="run" onclick="useScenario(\'' + s.id + '\', true)">Run ▶</button>';
+  html += '</div>';
+  card.innerHTML = html;
+  return card;
+}
+
+function escapeHtml(text) {
+  if (text == null) return '';
+  return String(text).replace(/[&<>"']/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+async function useScenario(scenarioId, autoRun) {
+  try {
+    var r = await fetch('/api/scenarios/' + encodeURIComponent(scenarioId));
+    if (!r.ok) {
+      setStatus('error', 'Scenario "' + scenarioId + '" failed to load');
+      return;
+    }
+    var d = await r.json();
+    if (d.room)     setCfg('room',    JSON.stringify(d.room, null, 2));
+    if (d.ris)      setCfg('ris',     JSON.stringify(d.ris, null, 2));
+    if (d.nodes)    setCfg('nodes',   JSON.stringify(d.nodes, null, 2));
+    if (d.channel)  setCfg('channel', JSON.stringify(d.channel, null, 2));
+    if (d.traffic)  setCfg('traffic', JSON.stringify(d.traffic, null, 2));
+    refreshAllForms();
+    setStatus('idle', 'Loaded scenario: ' + scenarioId);
+    drawTopology();
+    if (autoRun) {
+      // small delay so the textareas commit before buildScenario reads them
+      setTimeout(startSimulation, 60);
+    }
+  } catch(e) {
+    setStatus('error', 'Could not load scenario: ' + (e && e.message ? e.message : e));
+  }
+}
 function saveConfig() {
   var b = new Blob([JSON.stringify(buildScenario(),null,2)],{type:'application/json'});
   var a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='scenario.json'; a.click();
@@ -322,6 +735,7 @@ function loadConfig(evt) {
       if (d.nodes) setCfg('nodes',JSON.stringify(d.nodes,null,2));
       if (d.traffic) setCfg('traffic',JSON.stringify(d.traffic,null,2));
       if (d.channel) setCfg('channel',JSON.stringify(d.channel,null,2));
+      refreshAllForms();
     } catch(ex) { setStatus('error','Invalid JSON'); }
   };
   reader.readAsText(f);
@@ -689,9 +1103,228 @@ function makeBarChart(canvasId, cache, key, channelData) {
   } catch(e) {}
 }
 
+// ── 2D / 3D Topology mode toggle ─────────────────────────────────
+function setTopoMode(mode) {
+  var canvas = document.getElementById('topo-canvas');
+  var div3d  = document.getElementById('topo-3d');
+  var btn2   = document.getElementById('topo-2d-btn');
+  var btn3   = document.getElementById('topo-3d-btn');
+  if (mode === '3d') {
+    canvas.classList.add('hidden');
+    div3d.classList.remove('hidden');
+    btn2.classList.remove('active'); btn3.classList.add('active');
+    if (window._topo3dInit) window._topo3dInit(div3d);
+    if (window._topo3dDraw) window._topo3dDraw();
+  } else {
+    canvas.classList.remove('hidden');
+    div3d.classList.add('hidden');
+    btn2.classList.add('active'); btn3.classList.remove('active');
+    drawTopology();
+  }
+}
+
 // ── Init ───────────────────────────────────────────────────
 loadTemplates();
+loadScenarios();
+refreshAllForms();
 drawTopology();
+</script>
+
+<script type="module">
+// ── 3D topology view (Three.js) ──────────────────────────────────
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+let scene, camera, renderer, controls, frameId;
+let nodeGroup, risGroup, roomMesh, axesHelper, gridHelper;
+
+function makeTextSprite(text, color) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = 'bold 28px Segoe UI';
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.fillStyle = color || '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, c.width / 2, c.height / 2);
+  const tex = new THREE.CanvasTexture(c);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  return sprite;
+}
+
+window._topo3dInit = function(container) {
+  if (renderer) {
+    // Already initialized — just resize to current container size
+    const w = container.clientWidth, h = container.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+    return;
+  }
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0d1117);
+
+  const w = container.clientWidth || 800;
+  const h = container.clientHeight || 500;
+  camera = new THREE.PerspectiveCamera(50, w / h, 0.01, 1e9);
+  camera.position.set(15, 15, 15);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  container.appendChild(renderer.domElement);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  dirLight.position.set(60, 100, 80);
+  scene.add(dirLight);
+
+  nodeGroup = new THREE.Group();
+  risGroup = new THREE.Group();
+  scene.add(nodeGroup);
+  scene.add(risGroup);
+
+  function animate() {
+    frameId = requestAnimationFrame(animate);
+    if (controls) controls.update();
+    if (renderer) renderer.render(scene, camera);
+  }
+  animate();
+
+  // Resize when its tab becomes visible (window resize handler)
+  window.addEventListener('resize', function() {
+    if (!container.offsetParent) return;
+    const W = container.clientWidth, H = container.clientHeight;
+    if (!W || !H) return;
+    camera.aspect = W / H;
+    camera.updateProjectionMatrix();
+    renderer.setSize(W, H);
+  });
+};
+
+window._topo3dDraw = function() {
+  if (!scene) return;
+
+  // Read scenario from cfg-* textareas (same source of truth as the 2D view)
+  let room, nodes, ris;
+  try { room = JSON.parse(document.getElementById('cfg-room').value); } catch(e) { room = { length: 10, width: 10, height: 5 }; }
+  try { nodes = JSON.parse(document.getElementById('cfg-nodes').value); } catch(e) { nodes = []; }
+  try { ris = JSON.parse(document.getElementById('cfg-ris').value); } catch(e) { ris = []; }
+
+  const L = +room.length || 10;
+  const W = +room.width || 10;
+  const H = +room.height || Math.max(L, W) * 0.5;
+  const maxDim = Math.max(L, W, H);
+
+  // Mapping: scenario (x, y, z) -> Three.js (x, z=height, y=depth)
+  const toThree = (loc) => new THREE.Vector3(loc[0] || 0, loc[2] || 0, loc[1] || 0);
+
+  // Room: wireframe box at corner (0,0,0) -> (L, H, W)
+  if (roomMesh) scene.remove(roomMesh);
+  const boxGeom = new THREE.BoxGeometry(L, H, W);
+  const wire = new THREE.EdgesGeometry(boxGeom);
+  roomMesh = new THREE.LineSegments(wire, new THREE.LineBasicMaterial({ color: 0x30363d }));
+  roomMesh.position.set(L / 2, H / 2, W / 2);
+  scene.add(roomMesh);
+
+  // Ground grid
+  if (gridHelper) scene.remove(gridHelper);
+  const gridDivs = Math.max(4, Math.min(40, Math.round(maxDim / 1)));
+  gridHelper = new THREE.GridHelper(Math.max(L, W) * 1.05, gridDivs, 0x1c2128, 0x1c2128);
+  gridHelper.position.set(L / 2, 0, W / 2);
+  scene.add(gridHelper);
+
+  // Auto-fit camera based on room size
+  const eyeDist = maxDim * 1.6 + 1;
+  camera.position.set(L * 0.5 + eyeDist, H * 0.5 + eyeDist * 0.8, W * 0.5 + eyeDist);
+  camera.lookAt(L / 2, H / 2, W / 2);
+  controls.target.set(L / 2, H / 2, W / 2);
+  controls.update();
+
+  // Nodes
+  nodeGroup.clear();
+  const sphereSize = Math.max(0.12, maxDim * 0.018);
+  (nodes || []).forEach(function(n) {
+    const loc = n.location || [0, 0, 0];
+    const p = toThree(loc);
+    const color = (n.mode === 'transmit') ? 0x3fb950
+                 : (n.mode === 'receive') ? 0x58a6ff
+                 : 0xd29922;
+    const mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(sphereSize, 16, 16),
+      new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.25 })
+    );
+    mesh.position.copy(p);
+    nodeGroup.add(mesh);
+    const sprite = makeTextSprite(n.id || '?', '#fff');
+    sprite.scale.set(maxDim * 0.12, maxDim * 0.03, 1);
+    sprite.position.copy(p).y += sphereSize * 3;
+    nodeGroup.add(sprite);
+  });
+
+  // RIS panels (rendered as semi-transparent rectangles)
+  risGroup.clear();
+  (ris || []).forEach(function(r) {
+    const loc = r.location || [0, 0, 0];
+    const arr = r.array_size || [8, 8];
+    const cell = (+r.unit_cell_m_length || 0.05) + (+r.unit_cell_gap || 0);
+    const panelM = arr[0] * cell;   // height (paper "M" rows)
+    const panelN = arr[1] * cell;   // width  (paper "N" cols)
+    const plane = +r.plane || 5;
+
+    // Rectangle is (panelN x panelM); we orient it according to plane number,
+    // matching ris_sim/core/state.py:_get_normal:
+    //   1: normal -Z   (XY plane at z=lz, panel sits flat)
+    //   4: normal +Z
+    //   2: normal -X   (YZ plane at x=lx, panel stands vertical along Y/Z)
+    //   5: normal +X
+    //   3: normal -Y   (XZ plane at y=ly, panel stands vertical along X/Z)
+    //   6: normal +Y
+    const geom = new THREE.PlaneGeometry(panelN, panelM);
+    const mat = new THREE.MeshLambertMaterial({
+      color: 0xd4a72c, transparent: true, opacity: 0.78, side: THREE.DoubleSide,
+      emissive: 0x6b4f00, emissiveIntensity: 0.25,
+    });
+    const mesh = new THREE.Mesh(geom, mat);
+
+    // PlaneGeometry default lies in XY (normal +Z). Rotate + position based on `plane`.
+    let centerX = loc[0], centerY = loc[2], centerZ = loc[1];
+    if (plane === 1 || plane === 4) {
+      // XY plane in scenario coords -> floor/ceiling in Three.js
+      mesh.rotation.x = -Math.PI / 2;
+      centerX = loc[0] + panelN / 2;
+      centerZ = loc[1] + panelM / 2;
+    } else if (plane === 2 || plane === 5) {
+      // YZ plane in scenario -> stands facing X axis in Three.js
+      mesh.rotation.y = Math.PI / 2;
+      centerY = (loc[2] || 0) + panelM / 2;
+      centerZ = (loc[1] || 0) + panelN / 2;
+    } else {
+      // plane 3 or 6: XZ plane in scenario -> stands facing Y axis in Three.js
+      // (no rotation needed; PlaneGeometry already in XY ~ Three.js Z)
+      // We need normal along Y, so rotate to XZ in Three.js by rotating around X
+      mesh.rotation.x = 0;
+      centerX = (loc[0] || 0) + panelN / 2;
+      centerY = (loc[2] || 0) + panelM / 2;
+    }
+    mesh.position.set(centerX, centerY, centerZ);
+    risGroup.add(mesh);
+
+    // Label above the panel
+    const sprite = makeTextSprite(r.id || 'RIS', '#ffd33d');
+    sprite.scale.set(maxDim * 0.12, maxDim * 0.03, 1);
+    sprite.position.set(centerX, centerY + Math.max(panelM, panelN) * 0.6, centerZ);
+    risGroup.add(sprite);
+  });
+};
 </script>
 </body>
 </html>

@@ -14,6 +14,7 @@ from ris_sim.core.logging import get_logger
 _log = get_logger("dashboard")
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
 PUSH_INTERVAL_S = 0.05  # 50ms = 20 Hz max push rate
 
 
@@ -29,15 +30,61 @@ def load_template(name: str) -> dict[str, Any] | None:
     path = TEMPLATES_DIR / f"{name}.json"
     if not path.exists():
         return None
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
 def save_template(name: str, scenario: dict[str, Any]) -> None:
     TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
     path = TEMPLATES_DIR / f"{name}.json"
-    with open(path, "w") as f:
-        json.dump(scenario, f, indent=2)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(scenario, f, indent=2, ensure_ascii=False)
+
+
+# ── Featured scenarios (paper-grounded, with metadata envelope) ────
+# A featured scenario file has the shape::
+#
+#   { "meta": { "name", "subtitle", "description", "citation",
+#               "category", "tags", "frequency_label",
+#               "topology_label", "estimated_runtime_s" },
+#     "scenario": { "room", "ris", "nodes", "channel", "traffic", ... } }
+#
+# Bare scenario files (no `meta`/`scenario` envelope) are also accepted
+# for backwards compatibility.
+
+def list_scenarios() -> list[dict[str, Any]]:
+    """Return featured scenarios as a list of {id, ...meta} dicts for the
+    dashboard scenario library cards. Skips files that don't parse."""
+    if not SCENARIOS_DIR.exists():
+        return []
+    out: list[dict[str, Any]] = []
+    for path in sorted(SCENARIOS_DIR.glob("*.json")):
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            continue
+        meta = dict(data.get("meta", {}))
+        meta.setdefault("name", path.stem)
+        meta["id"] = path.stem
+        out.append(meta)
+    # Stable ordering: quickstart first, then validation, then application
+    order = {"quickstart": 0, "validation": 1, "application": 2}
+    out.sort(key=lambda m: (order.get(m.get("category", ""), 99), m["id"]))
+    return out
+
+
+def load_scenario(scenario_id: str) -> dict[str, Any] | None:
+    """Load a featured scenario by id and return the inner scenario dict
+    (unwrapping the envelope if present)."""
+    path = SCENARIOS_DIR / f"{scenario_id}.json"
+    if not path.exists():
+        return None
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, dict) and "scenario" in data:
+        return data["scenario"]
+    return data
 
 
 def validate_scenario(scenario: dict[str, Any]) -> list[str]:

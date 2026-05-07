@@ -12,7 +12,9 @@ from fastapi.staticfiles import StaticFiles
 
 from ris_sim.web.session import (
     DashboardSession,
+    list_scenarios,
     list_templates,
+    load_scenario,
     load_template,
     save_template,
     validate_scenario,
@@ -51,6 +53,22 @@ async def api_template(name: str):
 async def api_save_template(name: str, scenario: dict[str, Any]):
     save_template(name, scenario)
     return {"status": "ok", "name": name}
+
+
+@app.get("/api/scenarios")
+async def api_scenarios():
+    """Featured scenarios with rich metadata for the scenario-library cards."""
+    return {"scenarios": list_scenarios()}
+
+
+@app.get("/api/scenarios/{scenario_id}")
+async def api_scenario(scenario_id: str):
+    """Return the inner scenario JSON (envelope unwrapped) for the dashboard
+    to drop into the editor and Start."""
+    data = load_scenario(scenario_id)
+    if data is None:
+        return JSONResponse({"error": f"Scenario {scenario_id!r} not found"}, status_code=404)
+    return data
 
 
 @app.post("/api/validate")

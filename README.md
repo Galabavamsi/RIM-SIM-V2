@@ -13,12 +13,22 @@ pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git
 ris-sim dashboard
 ```
 
+![Dashboard configuration with scenario library](docs/images/dashboard_config.png)
+
+The dashboard ships with:
+
+- **Scenario Library** of paper-grounded examples (Quickstart, Polar-Grid Validation §III-C, Indoor Corridor, mmWave Blockage, FM Rural Coverage, Vehicular V2X) — click **Use** to load into the editor, or **Run ▶** to execute immediately.
+- **Form ↔ JSON config editor** — Room and Channel as number inputs / checkboxes, Nodes as an editable table, RIS and Traffic as JSON. Toggle per panel; both views stay in sync.
+- **2D / 3D topology view** — Three.js scene with orbit / pan / zoom, wireframe room, TX/RX spheres, RIS panels oriented per their `plane` normal.
+- **Live simulation feed** — constellation, IQ time series, received power, and RIS heatmap update at 20 Hz over a WebSocket while the engine runs.
+
 ---
 
 ## Table of Contents
 
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
+- [Featured scenarios](#featured-scenarios)
 - [Installation](#installation)
 - [Usage](#usage)
   - [Python API](#python-api)
@@ -28,6 +38,7 @@ ris-sim dashboard
   - [Parallel Monte Carlo](#parallel-monte-carlo)
 - [Scenario Format](#scenario-format)
 - [Signal Models](#signal-models)
+- [Reproducible paper figures](#reproducible-paper-figures)
 - [Project Structure](#project-structure)
 - [Testing](#testing)
 - [Contributing](#contributing)
@@ -108,18 +119,53 @@ graph TB
 ```bash
 # Install
 pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git
-
-# Run a scenario directly
-ris-sim run examples/two_node_ris/scenario.json
-
-# Start the web dashboard (configure everything in browser)
-ris-sim dashboard
-
-# Or use python -m
-python -m ris_sim.cli.main dashboard
+ris-sim dashboard          # opens http://127.0.0.1:8080 — pick a scenario card, hit Run
 ```
 
-Open `http://127.0.0.1:8080` — select topology + signal from dropdowns, press **Start**.
+Or, headless from a script:
+
+```python
+from ris_sim.web.session import load_scenario
+from ris_sim.core.engine import Simulation
+
+sc = load_scenario("paper_polar_grid_3.5ghz")
+sim = Simulation.from_scenario(sc, seed=42)
+# ...queue traffic, sim.run(), inspect output...
+```
+
+---
+
+## Featured scenarios
+
+Six paper-grounded scenarios ship with the package and appear as cards in the dashboard's Scenario Library. They double as fixtures for the Python API and reference inputs for the figure suite.
+
+| ID | Source | Frequency | Topology |
+|----|--------|-----------|----------|
+| `quickstart_two_nodes_2.4ghz`  | RIS-SIM v2 default                   | 2.4 GHz  | 1 TX + 1 RX, 8×8 RIS |
+| `paper_polar_grid_3.5ghz`      | Paper §III-C lab reproduction        | 3.5 GHz  | 1 TX + 30 RX, 3×(5×8) RIS |
+| `indoor_corridor_2.4ghz`       | Di Renzo / Basar 2020 indoor coverage | 2.4 GHz  | 1 TX + 1 RX, 16×16 RIS, 10 m corridor |
+| `mmwave_blockage_28ghz`        | Björnson 2020 mmWave hotspot         | 28 GHz   | 1 AP + 1 UE, 32×32 RIS, wall bypass |
+| `paper_fm_rural_coverage`      | Paper §IV passive FM RIS             | 100 MHz  | 1 TX + 5 RX, 80×80 RIS at 80 km |
+| `vehicular_v2x_5.9ghz`         | CoopeRIS-style V2X with mobility     | 5.9 GHz  | 1 RSU + 1 vehicle (mobile), 16×16 RIS |
+
+Each scenario file at `ris_sim/web/scenarios/*.json` uses a metadata envelope:
+
+```json
+{
+  "meta": {
+    "name": "...",
+    "subtitle": "...",
+    "description": "...",
+    "citation": "...",
+    "category": "quickstart | validation | application",
+    "tags": ["..."],
+    "frequency_label": "...",
+    "topology_label": "...",
+    "estimated_runtime_s": 4
+  },
+  "scenario": { /* room, ris, nodes, channel, traffic */ }
+}
+```
 
 ---
 
@@ -269,10 +315,26 @@ Opens at `http://127.0.0.1:8080` with 4 tabs:
 
 | Tab | Content |
 |-----|---------|
-| **Configuration** | Two-column JSON editor (Room, Nodes, RIS, Traffic, Channel). Independent topology + signal dropdowns with pre-built templates. |
-| **Room Topology** | Interactive canvas — click to add nodes, drag to reposition, color-coded by mode. |
+| **Configuration** | Top: **Scenario Library** of paper-grounded cards (color-coded by category). Below: editor with a **Form / JSON** toggle per panel — Room and Channel render as number inputs and checkboxes; Nodes is a table with add / delete / inline edit; RIS and Traffic stay as JSON for matrix/waveform editing. Form ↔ JSON sync is two-way. |
+| **Room Topology** | **2D top-down / 3D view** toggle. 2D is an interactive canvas (click to add nodes, drag to reposition). 3D is a Three.js scene with orbit / pan / zoom — wireframe room, color-coded TX/RX spheres with labels, RIS panels rendered as oriented rectangles. |
 | **Live View** | 2×2 grid: Constellation (I/Q), IQ Time Series, Received Power, RIS Heatmap. Updates during simulation. |
 | **Results** | Final constellation, Channel Analysis bar chart (LOS/RIS/Total/Boost), FFT spectrum, Room signal heatmap, Metrics table. |
+
+#### Configuration tab — Scenario Library + form-based editor
+
+![Configuration tab with Scenario Library and form editor](docs/images/dashboard_config.png)
+
+The Form view is the default. Click **JSON** in any panel header to edit raw JSON; switching back resyncs the form widgets from the JSON. This means you can mix-and-match: tweak `length` in the form, paste a giant `configuration_matrix` into the RIS JSON, never lose data.
+
+#### Topology tab — 3D view (Three.js)
+
+![3D topology view](docs/images/dashboard_topology.png)
+
+Toggle to **3D view** in the toolbar. The scene reads from the same source of truth as the 2D canvas (the `cfg-*` textareas), so loading a scenario card immediately repopulates both views. Camera auto-fits to the room — works for a 10 m corridor and an 80 km FM link without manual tuning.
+
+#### Results tab — populated after running a scenario
+
+![Results tab](docs/images/dashboard_results.png)
 
 ### ZeroMQ Server/Client
 
@@ -431,6 +493,42 @@ equalized = ofdm_equalize(rx_symbols, h_est)
 
 ---
 
+## Reproducible paper figures
+
+Every figure under `paper/figures/` is generated end-to-end by driving the actual `Simulation` engine (no canned numpy data). One command regenerates the entire suite:
+
+```bash
+python -m paper.figures_src.run_all          # ~100 s, writes 6 PDFs + 6 CSVs + 6 meta.json sidecars
+```
+
+Each figure script under `paper/figures_src/fig_*.py` is self-contained: it builds a scenario, drives the engine, writes the PDF to `paper/figures/`, the underlying numbers to `paper/figures_data/<name>.csv`, and a `<name>.meta.json` sidecar with the seed + git commit + parameters so reviewers can verify or re-run.
+
+| Figure | Source | What it shows | File |
+|--------|--------|---------------|------|
+| **A1** Polar-grid validation | Paper §III-C | 30 RX on a 45° polar arc, three 5×8 RIS panels at 3.5 GHz, peak gain at θ=20° | [polar_grid_validation.pdf](paper/figures/polar_grid_validation.pdf) |
+| **A2** CFO validation | Paper Fig 2 | Sweep injected CFO, recover via differential-phase estimator. RMSE = 0 Hz at high SNR | [cfo_validation.pdf](paper/figures/cfo_validation.pdf) |
+| **A3** Emulation-time profile | Paper Fig 3 | Wall-clock per tick vs node count for τ ∈ {0.3, 0.5, 1.0} s, two pipeline modes | [emulation_time.pdf](paper/figures/emulation_time.pdf) |
+| **A4** SNR CDF | Paper Fig 5 | 200 Monte Carlo trials via `parallel_run`, +1.51 dB median gain matches analytical prediction | [snr_cdf.pdf](paper/figures/snr_cdf.pdf) |
+| **A5** FM rural coverage | Paper §IV | RIS extends FM coverage from 75.3 km → 79.9 km, peak +8.98 dB at the village | [fm_coverage.pdf](paper/figures/fm_coverage.pdf) |
+| **A6** Dashboard screenshots | Live dashboard | Real Playwright screenshots of the running web UI | [dashboard.pdf](paper/figures/dashboard.pdf) |
+
+Examples:
+
+| Polar-grid validation (paper §III-C) | SNR CDF — Monte Carlo |
+|:---:|:---:|
+| ![Polar grid](docs/images/fig_polar_grid.png) | ![SNR CDF](docs/images/fig_snr_cdf.png) |
+| **CFO validation** | **FM rural coverage** |
+| ![CFO validation](docs/images/fig_cfo.png) | ![FM coverage](docs/images/fig_fm_coverage.png) |
+
+```bash
+python -m paper.figures_src.fig_polar_grid     # individual figures
+python -m paper.figures_src.fig_snr_cdf
+python -m paper.figures_src.fig_fm_coverage
+# ...
+```
+
+---
+
 ## Project Structure
 
 ```
@@ -470,9 +568,10 @@ RIM-SIM-V2/
 │   │
 │   ├── web/                    # Dashboard
 │   │   ├── app.py              # FastAPI app
-│   │   ├── session.py          # DashboardSession
+│   │   ├── session.py          # DashboardSession + scenario/template loaders
 │   │   ├── static/index.html   # Frontend (single-file SPA)
-│   │   └── templates/          # 10 pre-built scenario templates
+│   │   ├── scenarios/          # Featured paper-grounded scenarios (cards)
+│   │   └── templates/          # Legacy topo_/sig_ snippet templates
 │   │
 │   ├── modules/                # Legacy modules (kept for compat)
 │   │   ├── channel_functions.py
@@ -509,9 +608,25 @@ RIM-SIM-V2/
 │       ├── run_example.py
 │       └── scenario.json
 │
-└── scenarios/                  # Fixture library
-    ├── edge_cases/
-    └── rf_impairments/
+├── scenarios/                  # Standalone fixture library (edge cases, RF impairments)
+│   ├── edge_cases/
+│   └── rf_impairments/
+│
+├── paper/                      # Conference-ready figures (engine-driven, reproducible)
+│   ├── figures_src/
+│   │   ├── _common.py          # Shared paper plot style + meta.json sidecar writer
+│   │   ├── fig_polar_grid.py   # A1 — paper §III-C reproduction
+│   │   ├── fig_cfo_validation.py    # A2
+│   │   ├── fig_emulation_time.py    # A3
+│   │   ├── fig_snr_cdf.py            # A4 — uses parallel_run for Monte Carlo
+│   │   ├── fig_fm_coverage.py        # A5 — paper §IV
+│   │   ├── fig_dashboard.py          # A6 — Playwright screenshots of live UI
+│   │   └── run_all.py                # Orchestrator: regenerates everything in ~100 s
+│   ├── figures/                # Output PDFs (one per figure)
+│   └── figures_data/           # Raw CSVs + meta.json sidecars (seed + commit)
+│
+└── docs/
+    └── images/                 # README screenshots
 ```
 
 ---

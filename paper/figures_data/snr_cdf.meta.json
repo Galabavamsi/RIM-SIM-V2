@@ -1,0 +1,55 @@
+{
+  "figure": "snr_cdf",
+  "generated_at_utc": "2026-05-07T01:24:42+00:00",
+  "git_commit": "6782429",
+  "python": "3.12.4",
+  "params": {
+    "n_trials": 200,
+    "workers": 15,
+    "fc_hz": 2400000000.0,
+    "sample_rate_hz": 10000.0,
+    "pilot_length": 500,
+    "pilot_amplitude": 1.0,
+    "tau_s": 0.002,
+    "tx_location": [
+      2.0,
+      4.0,
+      2.0
+    ],
+    "rx_location": [
+      10.0,
+      4.0,
+      2.0
+    ],
+    "ris_location": [
+      5.5,
+      0.0,
+      1.7
+    ],
+    "ris_size": [
+      16,
+      16
+    ],
+    "noise_figure_db": 10.0,
+    "temperature_k": 290.0,
+    "fading_model": "rayleigh",
+    "max_doppler_hz": 50.0,
+    "ris_uniform_phase_deg": -122.62018366797905,
+    "machine": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+    "results": {
+      "los_only": {
+        "median_db": 98.84995430917283,
+        "p10_db": 98.46740326588429,
+        "p90_db": 99.1894366440288
+      },
+      "los_plus_ris": {
+        "median_db": 100.36309642271283,
+        "p10_db": 99.98054484565314,
+        "p90_db": 100.70257831633882
+      },
+      "median_gain_db": 1.513142113539999,
+      "p10_gain_db": 1.513141579768856
+    },
+    "snr_metric": "(mean|y|^2 - kTBNF) / kTBNF"
+  }
+}

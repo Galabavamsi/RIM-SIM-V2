@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "name": "Indoor Corridor (Di Renzo style)",
+    "subtitle": "RIS coverage extension in an office corridor",
+    "description": "Canonical RIS-assisted indoor coverage scenario inspired by the early Di Renzo / Basar surveys: a long narrow corridor (10 × 3 × 3 m) at 2.4 GHz with TX at one end, RX at the other, and a 16×16 RIS panel mounted on a side wall. Reflective fading and AWGN are enabled so the receiver sees the realistic channel.",
+    "citation": "Di Renzo et al., 2020; Basar et al., 2019 — RIS for indoor coverage",
+    "category": "validation",
+    "tags": ["indoor", "2.4 GHz", "corridor", "16×16", "Rayleigh fading"],
+    "frequency_label": "2.4 GHz",
+    "topology_label": "1 TX + 1 RX, 16×16 RIS, 10 m corridor",
+    "estimated_runtime_s": 3
+  },
+  "scenario": {
+    "room": {"length": 10.0, "width": 3.0, "height": 3.0},
+    "tau": 0.002,
+    "ris": [
+      {
+        "id": "wall_ris",
+        "fc": 2400000000.0,
+        "type": "static",
+        "plane": 6,
+        "location": [3.0, 0.0, 0.5],
+        "unit_cell_m_length": 0.0625,
+        "unit_cell_n_length": 0.0625,
+        "unit_cell_gap": 0.005,
+        "array_size": [16, 16],
+        "phase_response": {"1": [0.707, 0.707]},
+        "configuration_matrix": [
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+      }
+    ],
+    "nodes": [
+      {"id": "TX", "location": [1.0, 1.5, 1.5], "mobility": {"type": "static"}, "rf": {}},
+      {"id": "RX", "location": [9.0, 1.5, 1.5], "mobility": {"type": "static"},
+       "rf": {"cfo_hz": 50.0, "phase_noise_dbc_hz": -85.0}}
+    ],
+    "channel": {
+      "enable_noise": true,
+      "noise_figure_db": 8.0,
+      "small_scale": {"enabled": true, "model": "rayleigh", "max_doppler_hz": 5.0}
+    },
+    "traffic": [
+      {"mode": "transmit", "node_id": "TX", "fc": 2400000000.0, "sample_rate": 10000.0,
+       "waveform": {"kind": "bpsk_bits",
+                     "bits": [0,1,0,1,1,0,0,1,1,1,0,0,1,0,1,0,0,1,1,0,1,1,0,0,1,0,0,1,1,0,1,0],
+                     "amplitude": 0.3, "samples_per_symbol": 8}},
+      {"mode": "receive", "node_id": "RX", "fc": 2400000000.0, "sample_rate": 10000.0,
+       "num_samps": 256}
+    ]
+  }
+}

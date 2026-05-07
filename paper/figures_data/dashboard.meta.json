@@ -1,0 +1,23 @@
+{
+  "figure": "dashboard",
+  "generated_at_utc": "2026-05-07T01:47:24+00:00",
+  "git_commit": "6782429",
+  "python": "3.12.4",
+  "params": {
+    "viewport": [
+      1700,
+      950
+    ],
+    "screenshots": [
+      "config",
+      "results",
+      "topology"
+    ],
+    "browser": "Chromium (Playwright)",
+    "panels": {
+      "a_config": "Configuration tab with scenario library cards",
+      "b_results": "Results after running Quickstart scenario",
+      "c_topology": "Room topology view"
+    }
+  }
+}

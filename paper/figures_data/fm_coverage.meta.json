@@ -1,0 +1,47 @@
+{
+  "figure": "fm_coverage",
+  "generated_at_utc": "2026-05-07T01:24:51+00:00",
+  "git_commit": "6782429",
+  "python": "3.12.4",
+  "params": {
+    "fc_hz": 100000000.0,
+    "tx_power_dbm": 10.0,
+    "tx_location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "ris_location": [
+      -20.0,
+      -20.0,
+      80000.0
+    ],
+    "ris_size": [
+      80,
+      80
+    ],
+    "ris_unit_cell_m": 0.5,
+    "ris_focus_point": [
+      0.0,
+      0.0,
+      78000.0
+    ],
+    "village_radius_km": 2.0,
+    "n_rx": 200,
+    "distance_range_m": [
+      1000.0,
+      85000.0
+    ],
+    "sample_rate_hz": 10000.0,
+    "pilot_length": 64,
+    "sensitivity_dbm": -100.0,
+    "results": {
+      "los_coverage_km": 75.29145728643216,
+      "los_plus_ris_coverage_km": 79.93467336683418,
+      "extra_coverage_km": 4.643216080402013,
+      "peak_ris_gain_db": 8.977384712415741,
+      "peak_ris_gain_distance_km": 79.51256281407035
+    },
+    "seed": 42
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "figure": "polar_grid_validation",
+  "generated_at_utc": "2026-05-07T01:23:24+00:00",
+  "git_commit": "6782429",
+  "python": "3.12.4",
+  "params": {
+    "fc_hz": 3500000000.0,
+    "sigma_1_deg": 49.64,
+    "sigma_2_deg": -153.77,
+    "panel_size": [
+      5,
+      8
+    ],
+    "n_panels": 3,
+    "configuration": "{sigma_1^2, sigma_2^2, sigma_1^2}",
+    "unit_cell_m": 0.0428,
+    "unit_cell_gap_m": 0.002,
+    "panel_width_y_m": 0.3604,
+    "array_center": [
+      0.0,
+      0.5406,
+      0.113
+    ],
+    "tx_location": [
+      3.0,
+      0.5406,
+      0.113
+    ],
+    "angles_deg": [
+      0.0,
+      10.0,
+      20.0,
+      30.0,
+      40.0
+    ],
+    "radii_m": [
+      0.3,
+      0.6,
+      0.8999999999999999,
+      1.2,
+      1.5,
+      1.8
+    ],
+    "n_rx": 30,
+    "sample_rate_hz": 5000.0,
+    "pilot_length": 50,
+    "pilot_amplitude": 1.0,
+    "seed": 42
+  }
+}

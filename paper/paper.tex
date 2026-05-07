@@ -1,0 +1,411 @@
+% CAISc 2026 Submission Template
+% RIS-SIM v2: A Production-Grade Open Emulator for Smart Radio Environments
+
+\documentclass{article}
+\usepackage{caisc_2026}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts,amsmath,amssymb}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{float}
+
+\title{RIS-SIM v2: A Production-Grade Open Emulator for Smart Radio Environments with Real-Time Control and Web-Based Configuration}
+
+
+\author{%
+  Galaba Vamsi\textsuperscript{1}\thanks{Corresponding author: \texttt{galabavamsi@iitbhilai.ac.in}},
+  Shubhika Mishra\textsuperscript{1},
+  Anurag Jaiswal\textsuperscript{1},
+  Smriti Kumar\textsuperscript{1},
+  Mansi\textsuperscript{1},
+  Arzad Alam Kherani\textsuperscript{1} \\
+  \textsuperscript{1}Department of Electrical Engineering, Indian Institute of Technology Bhilai, India
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Reconfigurable Intelligent Surfaces (RIS) enable Smart Radio Environments (SREs) by dynamically controlling the wireless propagation channel. While multiple testbeds now support real-time RIS configuration, practical performance analysis at scale remains challenging due to hardware cost and complexity. We present RIS-SIM v2, a production-grade open-source emulator that replicates RIS-assisted wireless environments at the baseband level with SDR-compatible APIs. The emulator features a comprehensive signal processing pipeline including free-space path loss, per-element RIS channel modeling with vectorized computation, AWGN with configurable noise figure, Rayleigh and Rician fading, and a full suite of RF impairments (CFO, phase noise, IQ imbalance, SFO, and PA nonlinearity). A FastAPI-based web dashboard with Chart.js visualization enables browser-based scenario configuration, real-time constellation monitoring, and post-simulation channel analysis. A ZeroMQ server mode supports machine-to-machine IPC, and parallel Monte Carlo execution via \texttt{ProcessPoolExecutor} enables statistical studies across hundreds of trials. We validate the emulator against laboratory measurements using a fabricated 5$\times$8 RIS prototype at 3.5\,GHz, demonstrating accurate reproduction of spatial power distributions. The emulator's utility is demonstrated in planning a RIS-assisted FM broadcast system for rural coverage at 100\,MHz. RIS-SIM v2 passes 103 unit and integration tests with zero linting errors and is available as open-source software.
+\end{abstract}
+
+\section{Introduction}
+
+Sixth-generation (6G) wireless networks must support massive device connectivity, sub-millisecond latency, and AI-native operations under the IMT-2030 framework~\cite{ITU_IMT2030}. Achieving these goals requires a paradigm shift from optimizing only transmitters and receivers to actively manipulating the wireless propagation channel itself---transforming it from a passive entity into an intelligent part of the network, creating a Smart Radio Environment (SRE)~\cite{Smart_Radio_Environments_Di_Renzo}.
+
+Reconfigurable Intelligent Surfaces (RIS) are a key enabling technology for SREs~\cite{Appl_RIS_Wu}. An RIS consists of a planar array of low-cost, passive elements, each applying a controllable phase shift to incident electromagnetic waves~\cite{WC_RIS_basar}. By coordinating these phase shifts, an RIS can beamform reflected signals toward intended receivers, extend coverage, and enhance signal quality---all without active amplification.
+
+While physical testbeds provide the highest realism~\cite{etsiRIS001,tsdsi2023,RISTA,6gbricks_d3_2_2024}, they require expensive hardware (USRPs, RIS panels, anechoic chambers) and are impractical for large-scale studies. Simulation tools have been central to wireless system design for decades~\cite{Survey_on_5G_simulations,survey_network_simulators}, and the concept of the Network Digital Twin~\cite{survey_simulator_emulator_testbed} positions simulation as an integral part of the network lifecycle.
+
+Several RIS simulation tools exist, summarized in Table~\ref{tab:simtools}, but none combine real-time RIS control, SDR-compatible interfaces, web-based configuration, parallel execution, and comprehensive RF impairment modeling in a single open-source package. Our earlier work~\cite{WCL2025,NCC2025} developed a RIS-assisted simulation framework for indoor mobility scenarios. The present paper describes RIS-SIM v2, a complete rewrite that elevates the prototype to production-grade quality.
+
+\begin{table*}[t]
+\caption{Comparison of RIS Simulation Tools and RIS-SIM v2}
+\label{tab:simtools}
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}p{1.8cm}p{0.7cm}p{2cm}p{0.7cm}p{2.2cm}p{0.7cm}p{2.5cm}@{}}
+\toprule
+\textbf{Simulator} & \textbf{Mob.} & \textbf{Channel Model} & \textbf{Open} & \textbf{RIS Features} & \textbf{RT} & \textbf{Use Case} \\
+\midrule
+SimRIS~\cite{basar2021simris} & No & Analytical & Yes & Phase response & No & Link-level \\
+QRIS~\cite{QRIS} & Yes & Stochastic & Yes & Beam pattern & No & Multi-user RIS \\
+CoopeRIS~\cite{CoopeRIS} & Yes & Geometry+Fading & Yes & Dynamic phase & No & V2X \\
+NYUSIM-RIS~\cite{NYUSIM} & No & Ray-tracing & Yes & Reflection & No & mmWave/THz \\
+SPM RIS~\cite{SPM_RIS} & Yes & Hybrid & Yes & Placement & No & Coverage \\
+GoSimRIS~\cite{GoSimRIS} & Yes & Analytical & Yes & Controller config & Partial & O-RAN \\
+RISim~\cite{RISim2022} & Yes & Analytical/Geo & Yes & Phase profiles & No & E2E sim \\
+\textbf{RIS-SIM v2} & \textbf{Yes} & \textbf{IQ-sample+Imp.} & \textbf{Yes} & \textbf{RT control+Multi-type} & \textbf{Yes} & \textbf{Standard APIs+Web UI+Parallel} \\
+\bottomrule
+\end{tabular}
+}
+\end{table*}
+
+This paper makes the following contributions:
+\begin{enumerate}
+    \item A production-grade, modular emulator architecture with in-memory state management, vectorized RIS channel computation, and per-tick instrumentation;
+    \item A comprehensive signal processing pipeline including LOS/NLOS propagation, AWGN, Rayleigh/Rician fading, OFDM, and five RF impairment models;
+    \item A multi-interface design supporting Python API, CLI, ZeroMQ server/client, and a FastAPI web dashboard with real-time visualization;
+    \item Parallel Monte Carlo execution for statistical performance analysis;
+    \item Validation against laboratory RIS measurements and demonstration in an FM broadcast coverage planning scenario.
+\end{enumerate}
+
+\section{System Architecture}
+\label{sec:architecture}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/architecture.pdf}
+    \caption{RIS-SIM v2 architecture. External entities (signal generators, RIS controllers) interact with the emulator core through standardized SDR-like APIs. The core engine orchestrates mobility, channel modeling, RF impairments, and output generation in discrete time steps.}
+    \label{fig:architecture}
+\end{figure}
+
+Figure~\ref{fig:architecture} illustrates the high-level architecture. The emulator is organized into three layers: (1) \textbf{external interfaces}---CLI, Python API, ZeroMQ server, web dashboard, and parallel execution; (2) \textbf{core engine}---the discrete-time simulation loop with request handling, mobility updates, and signal processing; and (3) \textbf{signal models}---channel propagation, RF impairments, mobility, and output/metrics.
+
+\subsection{Simulation Loop}
+
+The emulator operates in discrete time steps of duration $\tau$. For mobile nodes, $\tau$ is chosen such that the positional change within a step does not exceed 5\% of the signal wavelength. For static nodes, $\tau$ is based on channel coherence time. At each step, the core engine:
+
+\begin{enumerate}
+    \item Applies any pending RIS reconfigurations;
+    \item Updates node positions via mobility models;
+    \item Assigns queued transmit/receive requests to idle nodes;
+    \item Collects per-tick transmit IQ chunks;
+    \item Processes reception: applies channel, impairments, and noise per active receiver;
+    \item Records output samples and tick-level metrics.
+\end{enumerate}
+
+\subsection{Signal Processing Pipeline}
+
+The per-receiver signal processing chain processes IQ samples through:
+
+\[
+\mathbf{y}_{\text{rx}} = \left(\sum_{k \in \mathcal{T}} \mathcal{I}_{\text{TX}}(\mathbf{x}_k) \cdot h_k \cdot \mathcal{F}_k\right) \cdot \mathcal{I}_{\text{RX}} + \mathbf{n}
+\]
+
+where $\mathcal{I}_{\text{TX}}$ applies TX-side impairments (SFO, IQ imbalance, PA nonlinearity), $h_k$ is the complex channel coefficient for transmitter $k$, $\mathcal{F}_k$ is optional fading, $\mathcal{I}_{\text{RX}}$ applies RX-side impairments (CFO, phase noise, IQ imbalance, SFO), and $\mathbf{n} \sim \mathcal{CN}(0, \sigma^2\mathbf{I})$ is thermal AWGN with $\sigma^2 = kT B \cdot \text{NF} / 2$.
+
+\subsection{Channel Model}
+
+The total channel coefficient between a transmitter at $\mathbf{p}_t$ and receiver at $\mathbf{p}_r$ is:
+
+\[
+h = h_{\text{LOS}} + \sum_{m=1}^{M} \sum_{n=1}^{N_m} b_{m,n} \cdot v(\mathbf{p}_t, \mathbf{e}_{m,n}, \mathbf{p}_r, \mathbf{\hat{n}}_m) \cdot h_{\text{in}}^{(m,n)} \cdot h_{\text{out}}^{(m,n)}
+\]
+
+where $h_{\text{LOS}} = \frac{\lambda}{4\pi d}\exp(-j2\pi d/\lambda)$ is the free-space LOS component, $b_{m,n}$ is the complex reflection coefficient of the $n$-th element of the $m$-th RIS panel, $v(\cdot)$ is the angular visibility term, and $h_{\text{in}}^{(m,n)}, h_{\text{out}}^{(m,n)}$ are the cascaded free-space coefficients for the incident and reflected paths. The RIS computation is fully vectorized using NumPy broadcasting, enabling real-time processing of panels up to $256 \times 256$ elements.
+
+\subsection{RF Impairments}
+
+The emulator models five RF impairments, applied in physically correct order:
+
+\begin{itemize}
+    \item \textbf{Carrier Frequency Offset (CFO)}: $\exp(j \cdot 2\pi \cdot \Delta f \cdot t)$ rotating phasor;
+    \item \textbf{Phase Noise}: Wiener process with configurable phase noise density;
+    \item \textbf{IQ Imbalance}: $I' = I\sqrt{g}$, $Q' = Q/\sqrt{g} + I\sin(\phi)$;
+    \item \textbf{Sample Frequency Offset (SFO)}: linear interpolation resampling;
+    \item \textbf{Power Amplifier Nonlinearity}: Rapp model $A_{\text{out}} = A_{\text{in}}G / (1 + (A_{\text{in}}G/A_{\text{sat}})^{2p})^{1/(2p)}$.
+\end{itemize}
+
+\subsection{Web Dashboard}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/dashboard.pdf}
+    \caption{RIS-SIM v2 web dashboard. Left: JSON-based configuration panel with independent topology and signal template selection. Top-right: Room topology with interactive node placement. Bottom: RIS configuration heatmap and IQ time series.}
+    \label{fig:dashboard}
+\end{figure}
+
+The web dashboard (Figure~\ref{fig:dashboard}) provides a browser-based interface with four tabs: Configuration (JSON editors with topology/signal template selection), Room Topology (interactive canvas with node drag-and-drop), Live View (2$\times$2 grid of constellation, IQ time series, power, and RIS heatmap), and Results (channel analysis bar chart, FFT spectrum, room signal heatmap, and metrics). The backend uses FastAPI with WebSocket push at 20\,Hz for real-time updates.
+
+\subsection{Parallel Monte Carlo}
+
+For statistical studies, \texttt{parallel\_run()} distributes independent simulation trials across CPU cores using \texttt{ProcessPoolExecutor}. Each trial receives a unique seed, and results are aggregated into \texttt{MonteCarloResult} objects supporting SNR CDFs, percentile computation, and visualization.
+
+\section{Numerical Analysis}
+\label{sec:numerical}
+
+\subsection{CFO Validation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.48\linewidth]{figures/cfo_validation.pdf}
+    \caption{Estimated vs.\ actual CFO values using BPSK receiver integrated with the emulator. The strong linear correlation ($R^2 > 0.99$) confirms accurate CFO reproduction.}
+    \label{fig:cfo}
+\end{figure}
+
+To validate the emulator's fidelity, we integrated an in-house BPSK communication system that originally interfaced with USRP hardware. By replacing only the USRP API calls with the emulator's \texttt{send\_to\_simulator()} and \texttt{receive\_from\_simulator()} functions, the BPSK system operated without modification. Figure~\ref{fig:cfo} compares actual CFO values injected by the emulator with those estimated by the BPSK receiver's synchronization algorithm. The near-ideal linear correlation confirms that the emulator accurately reproduces CFO behavior.
+
+\subsection{Real-Time Performance Profiling}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.48\linewidth]{figures/emulation_time.pdf}
+    \caption{Wall-clock emulation time $T_{\text{sim}}$ vs.\ number of node pairs on a dual Xeon Gold 6338 server. Real-time operation ($T_{\text{sim}} \leq \tau$) is maintained for up to 10 nodes at $\tau = 1$\,s.}
+    \label{fig:emulation_time}
+\end{figure}
+
+We profiled the emulator on a dual-socket Intel Xeon Gold 6338 (64 cores, 192\,GB RAM). Figure~\ref{fig:emulation_time} shows the wall-clock time required to process one $\tau$-duration frame as the number of simultaneous transmitter-receiver pairs increases. With all passband processing enabled, real-time operation is maintained for 6, 8, and 10 node pairs at $\tau = 0.3$, $0.5$, and $1.0$ seconds respectively. By selectively disabling passband stages, the emulator scales to 12 nodes.
+
+\subsection{Experimental RIS Validation}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{figures/ris_heatmap.pdf}
+    \caption{Comparison of normalized received power distributions for the RIS configuration $\{\sigma_1^2\sigma_2^2\sigma_1^2\}$ where $\sigma_1 = 49.64^\circ$ and $\sigma_2 = -153.77^\circ$. Left: Emulator output. Right: Laboratory measurements using a fabricated 5$\times$8 RIS at 3.5\,GHz.}
+    \label{fig:ris_heatmap}
+\end{figure}
+
+We validated the emulator against laboratory measurements using a fabricated passive RIS with $5 \times 8$ elements. The experimental setup used B200 USRPs with the receiver swept across a polar grid spanning $45^\circ$ at 3.5\,GHz. Figure~\ref{fig:ris_heatmap} compares the emulated and measured received power distributions for a configuration alternating $\sigma_1^2$ and $\sigma_2^2$ phase states. Despite differences in absolute power levels (the emulator outputs gain relative to LOS), the spatial patterns show strong agreement---the emulator reproduces the direction of peak gain and the attenuation characteristics at sector boundaries.
+
+\subsection{Monte Carlo SNR Analysis}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.48\linewidth]{figures/snr_cdf.pdf}
+    \caption{SNR empirical CDF from 500 Monte Carlo trials with and without RIS. The RIS provides a median SNR improvement of approximately 7\,dB in this scenario.}
+    \label{fig:snr_cdf}
+\end{figure}
+
+To demonstrate the parallel Monte Carlo capability, Figure~\ref{fig:snr_cdf} shows SNR CDFs from 500 independent trials with Rayleigh fading. The RIS-assisted configuration achieves a median SNR gain of $\sim$7\,dB over LOS-only propagation, with reduced variance due to the additional propagation paths.
+
+\section{Application: FM Broadcast Coverage}
+\label{sec:fm}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.48\linewidth]{figures/fm_coverage.pdf}
+    \caption{Received signal power vs.\ distance for a 100\,MHz FM broadcast with a 30$\times$30 RIS deployed for rural coverage enhancement. The green region indicates where the RIS extends coverage beyond the -100\,dBm sensitivity threshold.}
+    \label{fig:fm_coverage}
+\end{figure}
+
+To demonstrate the emulator's utility in real-world planning, we modeled a rural FM broadcast scenario at 100\,MHz. A transmitter at $(0, 200, 100)$\,m serves a village at approximately 52\,km range. A passive 30$\times$30 RIS with $0.25 \times 0.25$\,m unit cells is deployed at an intermediate location. Figure~\ref{fig:fm_coverage} shows that the RIS-assisted total signal maintains power above the $-100$\,dBm sensitivity threshold between 50--58\,km, where LOS alone would fail. This application demonstrates the emulator's ability to model large-scale, realistic deployment scenarios.
+
+\section{Engineering Quality}
+
+RIS-SIM v2 is developed with production-grade engineering practices:
+\begin{itemize}
+    \item \textbf{103 automated tests} covering engine correctness, channel models, impairments, OFDM, server round-trips, dashboard endpoints, golden-output regression, and parallel execution;
+    \item \textbf{Zero linting errors} (ruff) and \textbf{zero type errors} (mypy) across the codebase;
+    \item \textbf{Deterministic reproducibility} via \texttt{SeedSequence} with golden-output regression tests;
+    \item \textbf{CI/CD pipeline} (GitHub Actions) testing on Ubuntu, Windows, and macOS across Python 3.10--3.12;
+    \item \textbf{Structured logging} with key=value formatting, per-tick performance metrics, and progress reporting;
+    \item \textbf{Packaging} via \texttt{pyproject.toml} with optional dependency groups (\texttt{dev}, \texttt{web}).
+\end{itemize}
+
+\section{Conclusion}
+
+We presented RIS-SIM v2, a production-grade open-source emulator for RIS-assisted smart radio environments. The emulator combines a comprehensive signal processing pipeline, multiple user interfaces (Python API, CLI, ZeroMQ, web dashboard), parallel Monte Carlo execution, and rigorous engineering quality. Validation against laboratory measurements confirms its fidelity, and an FM broadcast planning case study demonstrates real-world applicability. The emulator is available at \url{https://github.com/Galabavamsi/RIM-SIM-V2} and installable via \texttt{pip install git+https://github.com/Galabavamsi/RIM-SIM-V2.git}.
+
+\section*{References}
+{\small
+\bibliographystyle{unsrt}
+\begin{thebibliography}{99}
+
+\bibitem{ITU_IMT2030}
+ITU-R, ``Recommendation M.2160: Framework and overall objectives of IMT for 2030 and beyond,'' 2023.
+
+\bibitem{Smart_Radio_Environments_Di_Renzo}
+M.~Di Renzo \emph{et al.}, ``Smart radio environments empowered by reconfigurable intelligent surfaces: How it works, state of research, and the road ahead,'' \emph{IEEE J. Sel. Areas Commun.}, 2020.
+
+\bibitem{Appl_RIS_Wu}
+Q.~Wu and R.~Zhang, ``Towards smart and reconfigurable environment: Intelligent reflecting surface aided wireless network,'' \emph{IEEE Commun. Mag.}, 2020.
+
+\bibitem{WC_RIS_basar}
+E.~Basar \emph{et al.}, ``Wireless communications through reconfigurable intelligent surfaces,'' \emph{IEEE Access}, 2019.
+
+\bibitem{Survey_on_5G_simulations}
+P.~K.~Gkonis \emph{et al.}, ``A comprehensive study on simulation techniques for 5G networks,'' \emph{Electronics}, 2020.
+
+\bibitem{survey_network_simulators}
+A.~S.~Toor and A.~Jain, ``A survey on wireless network simulators,'' \emph{Bulletin of EE}, 2017.
+
+\bibitem{survey_simulator_emulator_testbed}
+J.~Gomez \emph{et al.}, ``A survey on network simulators, emulators, and testbeds,'' \emph{Computer Networks}, 2023.
+
+\bibitem{etsiRIS001}
+ETSI, ``Reconfigurable intelligent surfaces (RIS); use cases, deployment scenarios and requirements,'' Tech. Rep. RIS 001 V1.2.1, 2025.
+
+\bibitem{tsdsi2023}
+TSDSI, ``Methods and interface design for RIS-assisted communication systems,'' TSDSI STD 5003 V1.0.0, 2023.
+
+\bibitem{RISTA}
+Y.~Z.~J.~He, ``RISTA---RIS technology white paper,'' Tech. Rep., 2023.
+
+\bibitem{6gbricks_d3_2_2024}
+6G-BRICKS Project, ``D3.2 Initial report on the RIS controller and PaaS abstraction enablers,'' 2024.
+
+\bibitem{WCL2025}
+G.~Vamsi \emph{et al.}, ``RIS-assisted simulation framework for indoor communication under user mobility,'' \emph{IEEE WCL}, 2025.
+
+\bibitem{NCC2025}
+G.~Vamsi \emph{et al.}, ``Performance evaluation of mobile users in dynamic RIS environments,'' \emph{IEEE NCC}, 2025.
+
+\bibitem{basar2021simris}
+E.~Basar and I.~Yildirim, ``SimRIS channel simulator for RIS-empowered communication systems,'' in \emph{IEEE LATINCOM}, 2020.
+
+\bibitem{QRIS}
+I.~Burtakov \emph{et al.}, ``QRIS: A QuaDRiGa-based simulation platform for reconfigurable intelligent surfaces,'' \emph{IEEE Access}, 2023.
+
+\bibitem{CoopeRIS}
+M.~Segata \emph{et al.}, ``CoopeRIS: A framework for the simulation of reconfigurable intelligent surfaces in cooperative driving environments,'' \emph{Computer Networks}, 2024.
+
+\bibitem{NYUSIM}
+A.~Habib \emph{et al.}, ``Extended NYUSIM-based mmWave channel model and simulator for RIS-assisted systems,'' in \emph{EuCNC/6G Summit}, 2023.
+
+\bibitem{SPM_RIS}
+E.~Bj\"{o}rnson \emph{et al.}, ``Reconfigurable intelligent surfaces: A signal processing perspective,'' \emph{IEEE Signal Process. Mag.}, 2022.
+
+\bibitem{GoSimRIS}
+S.~E.~Ghalbzouri \emph{et al.}, ``Neural-driven control of RIS in 6G networks: A GoSimRIS and xApp-based framework,'' \emph{IEEE Netw. Lett.}, 2025.
+
+\bibitem{RISim2022}
+H.~Jiang \emph{et al.}, ``End-to-end learning for RIS-aided communication systems,'' \emph{IEEE Trans. Veh. Technol.}, 2022.
+
+\bibitem{ellingson2019pathloss}
+S.~W.~Ellingson, ``Path loss in reconfigurable intelligent surface-enabled channels,'' in \emph{IEEE PIMRC}, 2021.
+
+\bibitem{CFO}
+G.~Xing, M.~Shen, and H.~Liu, ``Frequency offset and I/Q imbalance compensation for direct-conversion receivers,'' \emph{IEEE Trans. Wireless Commun.}, 2005.
+
+\bibitem{pysdr}
+M.~W.~Lichtman, \emph{PySDR: A Guide to SDR and DSP using Python}, 2020.
+
+\bibitem{van1946fundamental}
+B.~Van~der~Pol, ``The fundamental principles of frequency modulation,'' \emph{JIEE}, 1946.
+
+\bibitem{radio_statistics}
+``Radio industry statistics,'' ToneIsland, 2024.
+
+\bibitem{wiki_fm_broadcasting}
+Wikipedia, ``FM broadcasting---reception distance,'' 2024.
+
+\bibitem{relay_costs}
+``LPFM economic considerations,'' FCC.
+
+\bibitem{broadcast_relay_wiki}
+``Broadcast relay station,'' Wikipedia.
+
+\bibitem{onuike_fmcoverage2013}
+O.~Onuike \emph{et al.}, ``Spatial coverage of FM radio transmitters in Niger State, Nigeria,'' \emph{IJET}, 2013.
+
+\bibitem{solidarities_jharkhand}
+V.~Pavarala, ``Building solidarities: A case of community radio in Jharkhand,'' \emph{EPW}, 2003.
+
+\bibitem{wearable}
+M.~Ali and I.~Khan, ``Wearable antenna design for FM radio,'' \emph{Arabian J. Sci. Eng.}, 2014.
+
+\bibitem{RWP}
+C.~Bettstetter \emph{et al.}, ``The node distribution of the random waypoint mobility model,'' \emph{IEEE Trans. Mobile Comput.}, 2003.
+
+\end{thebibliography}
+}
+
+\newpage
+
+\section*{CAISc 2026 - AI Involvement Checklist}
+\label{checklist_ai_involvement}
+
+\subsection*{Research Stage Assessment}
+
+\begin{enumerate}
+    \item \textbf{Hypothesis development}: \involvementA{} \iterationNA{} \\
+    \justificationTODO{All research hypotheses were formulated by the human authors based on domain expertise in wireless communications and RIS technology. AI tools were not used for hypothesis generation.}
+
+    \item \textbf{Experimental design and implementation}: \involvementB{} \iterationHigh{} \\
+    \justificationTODO{An AI coding assistant (large language model) was used to accelerate software implementation of the emulator codebase. The human authors designed the architecture, specified requirements, reviewed all generated code, and wrote all tests. Over 100 substantive iterations were required with significant human guidance, corrections, and refactoring. All mathematical models, signal processing algorithms, and validation methodology were specified by the human authors.}
+
+    \item \textbf{Analysis of data and interpretation of results}: \involvementA{} \iterationNA{} \\
+    \justificationTODO{All data analysis, result interpretation, and conclusions were performed by the human authors. AI was not used for numerical analysis or scientific interpretation.}
+
+    \item \textbf{Writing}: \involvementB{} \iterationMedium{} \\
+    \justificationTODO{An AI coding assistant helped draft initial sections of this manuscript and assisted with LaTeX formatting. The human authors substantially revised, restructured, and verified all content. All technical claims, mathematical formulations, figure interpretations, and conclusions were authored and verified by humans. Approximately 30--50 substantive iterations were required.}
+\end{enumerate}
+
+\subsection*{AI System Documentation}
+
+\begin{enumerate}
+    \setcounter{enumi}{4}
+    \item \textbf{AI systems used}: \\
+    \justificationTODO{A frontier large language model (code-generation and text-generation capabilities) was used as a coding assistant for software implementation and manuscript drafting. The system was used in an interactive, human-guided manner where the human authors specified requirements, reviewed outputs, and directed refinements.}
+
+    \item \textbf{Observed AI Limitations}: \\
+    \justificationTODO{The AI system occasionally produced syntactically incorrect code (e.g., Python-style complex number literals in JavaScript), required multiple iterations to correctly implement domain-specific signal processing formulas, and sometimes proposed architectures that did not align with the project's modular design principles. All such issues were caught and corrected during human code review and testing. The AI system was not capable of independently validating mathematical correctness or conducting experimental measurements.}
+\end{enumerate}
+
+\newpage
+
+\section*{CAISc 2026 - Reproducibility and Responsibility Checklist}
+\label{checklist_reproducibility}
+
+\begin{enumerate}
+\item {\bf Claims}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: The abstract and introduction accurately describe the emulator's capabilities. All claimed features (signal models, impairments, web dashboard, parallel execution) are implemented and verified by the test suite.
+
+\item {\bf Limitations}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Section 2 discusses the emulator's discrete-time approximation and the conditions for $\tau$ selection. The emulator operates at baseband and does not model physical-layer effects such as antenna coupling or mutual RIS element coupling.
+
+\item {\bf Theory assumptions and proofs}
+    \item[] Answer: \answerNA{}
+    \item[] Justification: This paper describes a software system and does not include theoretical proofs. Mathematical models are referenced from prior literature.
+
+\item {\bf Experimental result reproducibility}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: All simulation parameters (scenario JSON, seed values) are specified. The emulator produces bit-identical output with fixed seeds, verified by golden-output regression tests.
+
+\item {\bf Open access to data and code}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: The complete source code is available at \url{https://github.com/Galabavamsi/RIM-SIM-V2} under the MIT license. Installation and usage instructions are provided in the repository README.
+
+\item {\bf Experimental setting/details}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Section 3 specifies all experimental parameters (frequencies, RIS dimensions, phase values, node positions, server specifications).
+
+\item {\bf Experiment statistical significance}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: The Monte Carlo analysis (Section 3.4) uses 500 trials and reports empirical CDFs with median values.
+
+\item {\bf Experiments compute resources}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: Section 3.2 specifies the server hardware (2$\times$Xeon Gold 6338, 192\,GB RAM). Per-tick timing is reported by the emulator's built-in metrics system.
+
+\item {\bf Research Ethics}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: This research involves wireless communication system modeling and does not involve human subjects, personal data, or ethical concerns beyond standard engineering research practices.
+
+\item {\bf Broader impacts}
+    \item[] Answer: \answerYes{}
+    \item[] Justification: The emulator reduces the need for expensive hardware testing, lowering barriers to RIS research. The FM broadcast case study demonstrates potential for improving rural connectivity. No negative societal impacts are anticipated.
+\end{enumerate}
+
+\end{document}

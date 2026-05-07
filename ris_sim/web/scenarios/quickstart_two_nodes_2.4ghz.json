@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "name": "Quickstart — Two Nodes + RIS",
+    "subtitle": "Minimal scenario, fast turnaround",
+    "description": "Smallest end-to-end RIS scenario: 1 TX, 1 RX, one 8×8 RIS panel in a 10 m room at 2.4 GHz with BPSK traffic. Designed for first-time users — runs in under a second and exercises the full TX → channel → RX → impairment pipeline so the dashboard's live charts populate immediately.",
+    "citation": "RIS-SIM v2 default scenario",
+    "category": "quickstart",
+    "tags": ["quickstart", "2.4 GHz", "BPSK", "8×8", "tutorial"],
+    "frequency_label": "2.4 GHz",
+    "topology_label": "1 TX + 1 RX, 8×8 RIS",
+    "estimated_runtime_s": 1
+  },
+  "scenario": {
+    "room": {"length": 10.0, "width": 10.0, "height": 5.0},
+    "tau": 0.002,
+    "ris": [
+      {
+        "id": "ris_1",
+        "fc": 2400000000.0,
+        "type": "static",
+        "plane": 5,
+        "location": [0.0, 5.0, 2.0],
+        "unit_cell_m_length": 0.0625,
+        "unit_cell_n_length": 0.0625,
+        "unit_cell_gap": 0.005,
+        "array_size": [8, 8],
+        "phase_response": {"1": [0.707, 0.707]},
+        "configuration_matrix": [
+          [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]
+        ]
+      }
+    ],
+    "nodes": [
+      {"id": "TX", "location": [2.0, 4.0, 2.0], "mobility": {"type": "static"}, "rf": {}},
+      {"id": "RX", "location": [2.0, 6.0, 2.0], "mobility": {"type": "static"},
+       "rf": {"cfo_hz": 150.0}}
+    ],
+    "channel": {"enable_noise": true, "noise_figure_db": 5.0},
+    "traffic": [
+      {"mode": "transmit", "node_id": "TX", "fc": 2400000000.0, "sample_rate": 5880.0,
+       "waveform": {"kind": "bpsk_bits",
+                     "bits": [0,0,1,1,0,1,1,0,1,0,0,1,1,0,1,0,0,1,1,0,1,1,0,0],
+                     "amplitude": 0.3, "samples_per_symbol": 10}},
+      {"mode": "receive", "node_id": "RX", "fc": 2400000000.0, "sample_rate": 5880.0,
+       "num_samps": 240}
+    ]
+  }
+}

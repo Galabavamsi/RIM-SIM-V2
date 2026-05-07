@@ -1,0 +1,96 @@
+{
+  "meta": {
+    "name": "Polar Grid Validation",
+    "subtitle": "Paper §III-C lab reproduction",
+    "description": "Reproduces the in-house RIS validation experiment from paper §III-C: 1 TX and 30 RXs on a 45° polar grid (5 angles × 6 radii, 30 cm spacing) at 3.5 GHz, illuminating three side-by-side 5×8 RIS panels in the {σ¹² σ²² σ¹²} configuration with σ₁ = +49.64° and σ₂ = −153.77°. Used to validate that the emulator captures the spatial pattern of a fixed-phase passive RIS.",
+    "citation": "Paper §III-C — in-house 5×8 RIS, B200 USRPs",
+    "category": "validation",
+    "tags": ["validation", "3.5 GHz", "fixed phase", "polar grid", "indoor"],
+    "frequency_label": "3.5 GHz",
+    "topology_label": "1 TX + 30 RX, 3×(5×8) RIS",
+    "estimated_runtime_s": 5
+  },
+  "scenario": {
+    "room": {"length": 5.0, "width": 5.0, "height": 3.0},
+    "tau": 0.002,
+    "ris": [
+      {
+        "id": "panel_sigma1_left",
+        "fc": 3500000000.0,
+        "type": "static",
+        "plane": 5,
+        "location": [0.0, 0.0, 0.0],
+        "unit_cell_m_length": 0.0428,
+        "unit_cell_n_length": 0.0428,
+        "unit_cell_gap": 0.002,
+        "array_size": [5, 8],
+        "phase_response": {"1": [0.6477, 0.7619]},
+        "configuration_matrix": [[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]]
+      },
+      {
+        "id": "panel_sigma2_mid",
+        "fc": 3500000000.0,
+        "type": "static",
+        "plane": 5,
+        "location": [0.0, 0.3604, 0.0],
+        "unit_cell_m_length": 0.0428,
+        "unit_cell_n_length": 0.0428,
+        "unit_cell_gap": 0.002,
+        "array_size": [5, 8],
+        "phase_response": {"1": [-0.8975, -0.4413]},
+        "configuration_matrix": [[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]]
+      },
+      {
+        "id": "panel_sigma1_right",
+        "fc": 3500000000.0,
+        "type": "static",
+        "plane": 5,
+        "location": [0.0, 0.7208, 0.0],
+        "unit_cell_m_length": 0.0428,
+        "unit_cell_n_length": 0.0428,
+        "unit_cell_gap": 0.002,
+        "array_size": [5, 8],
+        "phase_response": {"1": [0.6477, 0.7619]},
+        "configuration_matrix": [[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]]
+      }
+    ],
+    "nodes": [
+      {"id": "TX",       "location": [3.0, 0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r030", "location": [0.30,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r060", "location": [0.60,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r090", "location": [0.90,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r120", "location": [1.20,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r150", "location": [1.50,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t00_r180", "location": [1.80,  0.5406, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r030", "location": [0.295, 0.593, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r060", "location": [0.591, 0.645, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r090", "location": [0.886, 0.697, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r120", "location": [1.182, 0.749, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r150", "location": [1.477, 0.801, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t10_r180", "location": [1.772, 0.853, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r030", "location": [0.282, 0.643, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r060", "location": [0.564, 0.746, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r090", "location": [0.846, 0.849, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r120", "location": [1.128, 0.951, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r150", "location": [1.410, 1.054, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t20_r180", "location": [1.692, 1.157, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r030", "location": [0.260, 0.691, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r060", "location": [0.520, 0.841, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r090", "location": [0.779, 0.991, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r120", "location": [1.039, 1.141, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r150", "location": [1.299, 1.291, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t30_r180", "location": [1.559, 1.441, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r030", "location": [0.230, 0.734, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r060", "location": [0.460, 0.926, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r090", "location": [0.689, 1.119, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r120", "location": [0.919, 1.312, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r150", "location": [1.149, 1.505, 0.113], "mobility": {"type": "static"}},
+      {"id": "RX_t40_r180", "location": [1.379, 1.697, 0.113], "mobility": {"type": "static"}}
+    ],
+    "channel": {"enable_noise": false},
+    "traffic": [
+      {"mode": "transmit", "node_id": "TX", "fc": 3500000000.0, "sample_rate": 5000.0,
+       "waveform": {"kind": "iq_pairs", "samples": [[1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]]}}
+    ]
+  }
+}

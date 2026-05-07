@@ -1,0 +1,58 @@
+{
+  "meta": {
+    "name": "Vehicular V2X (CoopeRIS style)",
+    "subtitle": "5.9 GHz roadside RIS, mobile receiver",
+    "description": "Vehicle-to-infrastructure scenario inspired by CoopeRIS: a roadside 16×16 RIS panel at the 5.9 GHz DSRC band reflects RSU signal to a moving vehicle. The receiver uses Gauss-Markov mobility at ~30 m/s along the road, with Rician fading (strong LOS) and a moderate Doppler. Demonstrates the engine's mobility + dynamic-channel capability.",
+    "citation": "CoopeRIS-style V2X — RIS at intersection, mobile UE",
+    "category": "application",
+    "tags": ["V2X", "5.9 GHz", "mobility", "Rician fading", "Doppler"],
+    "frequency_label": "5.9 GHz",
+    "topology_label": "1 RSU + 1 vehicle (mobile), 16×16 RIS",
+    "estimated_runtime_s": 3
+  },
+  "scenario": {
+    "room": {"length": 100.0, "width": 20.0, "height": 5.0},
+    "tau": 0.002,
+    "ris": [
+      {
+        "id": "roadside_ris",
+        "fc": 5900000000.0,
+        "type": "static",
+        "plane": 6,
+        "location": [40.0, 0.0, 3.0],
+        "unit_cell_m_length": 0.0254,
+        "unit_cell_n_length": 0.0254,
+        "unit_cell_gap": 0.002,
+        "array_size": [16, 16],
+        "phase_response": {"1": [0.707, 0.707]},
+        "configuration_matrix": [
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+          [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ]
+      }
+    ],
+    "nodes": [
+      {"id": "RSU", "location": [10.0, 8.0, 4.0], "mobility": {"type": "static"}},
+      {"id": "vehicle", "location": [5.0, 5.0, 1.5],
+       "mobility": {"type": "gauss_markov", "speed": 30.0, "alpha": 0.85,
+                    "mean_speed": 30.0, "mean_angle": 0.0},
+       "rf": {"cfo_hz": 800.0, "phase_noise_dbc_hz": -82.0}}
+    ],
+    "channel": {
+      "enable_noise": true,
+      "noise_figure_db": 7.0,
+      "small_scale": {"enabled": true, "model": "rician", "max_doppler_hz": 590.0, "k_factor_db": 8.0}
+    },
+    "traffic": [
+      {"mode": "transmit", "node_id": "RSU", "fc": 5900000000.0, "sample_rate": 50000.0,
+       "waveform": {"kind": "bpsk_bits",
+                     "bits": [1,1,0,0,1,0,1,1,0,1,0,0,1,1,0,1,1,0,1,0,0,1,0,1,1,1,0,0,1,0,1,1,
+                              0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,1,0,1,1,0,0,1,0,1,1,0,1,0,0,1,1],
+                     "amplitude": 0.3, "samples_per_symbol": 8}},
+      {"mode": "receive", "node_id": "vehicle", "fc": 5900000000.0, "sample_rate": 50000.0,
+       "num_samps": 512}
+    ]
+  }
+}

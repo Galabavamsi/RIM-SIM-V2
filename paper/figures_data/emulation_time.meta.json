@@ -1,0 +1,63 @@
+{
+  "figure": "emulation_time",
+  "generated_at_utc": "2026-05-07T01:24:40+00:00",
+  "git_commit": "6782429",
+  "python": "3.12.4",
+  "params": {
+    "n_pairs": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14,
+      16,
+      20,
+      24,
+      28,
+      32
+    ],
+    "n_nodes": [
+      2,
+      4,
+      6,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      40,
+      48,
+      56,
+      64
+    ],
+    "tau_values_s": [
+      0.3,
+      0.5,
+      1.0
+    ],
+    "sample_rate_hz": 10000.0,
+    "n_ticks_timed": 3,
+    "n_warmup": 1,
+    "ris_size": [
+      16,
+      16
+    ],
+    "machine": {
+      "processor": "AMD64 Family 25 Model 117 Stepping 2, AuthenticAMD",
+      "system": "Windows",
+      "release": "11",
+      "python": "3.12.4"
+    },
+    "modes": {
+      "full": "noise + Rayleigh fading + per-node CFO + phase noise + IQ imbalance",
+      "reduced": "LOS + RIS only (no noise, no fading, no impairments)"
+    },
+    "seed": 42
+  }
+}
