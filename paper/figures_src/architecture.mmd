@@ -1,0 +1,46 @@
+%%{init: {'theme':'base', 'themeVariables': {'fontFamily':'Helvetica, Arial, sans-serif','fontSize':'13px','primaryBorderColor':'#333','lineColor':'#333'}, 'flowchart': {'curve':'linear','nodeSpacing':22,'rankSpacing':36,'padding':6}}}%%
+flowchart TB
+    classDef header fill:#1f3a5f,stroke:#1f3a5f,stroke-width:0,color:#fff,font-weight:bold
+    classDef iface fill:#dbe8ff,stroke:#3b6fb8,stroke-width:1.2,color:#0a2a55
+    classDef core  fill:#dff3e0,stroke:#3b8b46,stroke-width:1.2,color:#13441b
+    classDef sig   fill:#ffe7c9,stroke:#c87b1b,stroke-width:1.2,color:#5c3308
+    classDef out   fill:#eee,stroke:#666,stroke-width:1.2,color:#222
+
+    subgraph IF["External Interfaces"]
+        direction LR
+        IF1["Python API"]:::iface
+        IF2["CLI"]:::iface
+        IF3["ZeroMQ Server / Client"]:::iface
+        IF4["Web Dashboard<br/>FastAPI + WebSocket @ 20 Hz"]:::iface
+        IF5["Three.js 3D Topology<br/>+ Form ↔ JSON Editor"]:::iface
+        IF6["Scenario Library<br/>6 paper-grounded JSON"]:::iface
+        IF7["Parallel Monte Carlo<br/>ProcessPoolExecutor"]:::iface
+        IF8["Figure Pipeline<br/>paper/figures_src/"]:::iface
+    end
+
+    subgraph CORE["Emulator Core"]
+        direction LR
+        C1["Discrete-Time Loop<br/>tick = τ"]:::core
+        C2["Scenario Loader<br/>+ Validator"]:::core
+        C3["State Manager<br/>(in-memory)"]:::core
+        C4["Channel Sounding API<br/>h_los, h_ris, h_total"]:::core
+        C5["Per-Tick Instrumentation"]:::core
+    end
+
+    subgraph SIG["Signal Models"]
+        direction LR
+        S1["LOS Channel<br/>free-space"]:::sig
+        S2["Per-Element RIS Channel<br/>vectorized + visibility"]:::sig
+        S3["AWGN<br/>kTBNF noise"]:::sig
+        S4["Rayleigh / Rician<br/>Fading"]:::sig
+        S5["RF Impairments<br/>CFO · Phase Noise · IQ · SFO · PA Rapp"]:::sig
+        S6["Mobility Models"]:::sig
+    end
+
+    OUT["Output / Metrics<br/>IQ samples · CSV · meta.json sidecars"]:::out
+
+    IF -->|"requests · scenarios · seeds"| CORE
+    CORE -->|"per-tick state · soundings"| IF
+    CORE -->|"channel · impairments · noise"| SIG
+    SIG -->|"y[n] = (Σ I_TX h_k F_k) I_RX + n"| OUT
+    OUT -->|"results · WebSocket frames"| IF

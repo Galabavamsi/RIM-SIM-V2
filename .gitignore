@@ -34,6 +34,13 @@ examples/*/runs/
 *.pdf
 !paper/figures/*.pdf
 
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+
 # Planning / docs
 docs/
 !docs/
