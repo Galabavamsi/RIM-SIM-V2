@@ -32,9 +32,14 @@ examples/*/runs/
 
 # PDFs / large binaries
 *.pdf
+!paper/figures/*.pdf
 
 # Planning / docs
 docs/
+!docs/
+docs/*
+!docs/images/
+!docs/images/**
 *IMPLEMENTATION_PLAN*
 *DASHBOARD_PLAN*
 *PHASE_G_PLAN*
